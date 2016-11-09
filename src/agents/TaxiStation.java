@@ -1,51 +1,111 @@
 package agents;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.PriorityQueue;
+import java.util.HashMap;
 
-import application.Passenger;
-import application.Taxi;
-import application.Travel;
 import gui.StationGUI;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
-import jade.domain.FIPAAgentManagement.Property;
-import jade.domain.FIPAAgentManagement.SearchConstraints;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
-import jade.proto.SubscriptionInitiator;
+import jade.lang.acl.MessageTemplate;
 
 public class TaxiStation extends Agent{
 	private static final long serialVersionUID = 488752805219045668L;
 
-	// variables used
-	private StationGUI stationGUI;
+	// GUI
+	private final int _gui_refresh_rate = 1; // seconds
 
-	private ArrayList<Taxi> offServiceTaxis; // taxis not travelling with passengers
-	private LinkedList<Passenger> passengersQueue; // passengers waiting for taxis to pick them up
-	private ArrayList<Travel> currentTravel; // current travelling taxis with passengers
+	private StationGUI stationGUI;
+	private HashMap<AID, String> taxisTable;
 
 	//---------------------------------------------
 	@Override
 	protected void setup() {
+		// Search for other taxi stations
+		DFAgentDescription stationTemplate = new DFAgentDescription();
+		ServiceDescription stationServiceTemplate = new ServiceDescription();
+		stationServiceTemplate.setType("station");
+		stationTemplate.addServices(stationServiceTemplate);
+
 		try {
-			// initializes all needed variables
-			offServiceTaxis = new ArrayList<>();
-			passengersQueue = new LinkedList<>();
-			currentTravel = new ArrayList<>();
+			DFAgentDescription[] searchResult = DFService.search(this, stationTemplate);
 
-			// creates station interface
-			stationGUI = new StationGUI();
-			System.out.println(getLocalName() + " just started!");
+			// Kill this station agent if there is another station agent up
+			System.out.println("#S >> " + getLocalName() + " >> Terminating, found another station");
+			if(searchResult.length != 0) takeDown();
+		} catch (FIPAException e) {
+			System.out.println("#S >> " + getLocalName() + " >> Search for another station exception");
+			e.printStackTrace();
+		}
 
-			// --------------------------------------------
-			// behaviours ---------------------------------
+		// --------------------------------------------
+		// Variables
+		taxisTable = new HashMap<>();
+
+		// Creates station interface
+		stationGUI = new StationGUI();
+		System.out.println("#S >> " + getLocalName() + " >> Just initialized");
+
+		// --------------------------------------------
+		// Yellow pages -------------------------------
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+
+		// Register the station service
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("station");
+		sd.setName(getLocalName());
+
+		dfd.addServices(sd);
+
+		try {
+			DFService.register(this, dfd);
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+
+		// --------------------------------------------
+		// Behaviours ---------------------------------
+		// Updates GUI Information
+		TickerBehaviour updateGUIInformationBehaviour = new TickerBehaviour(this, _gui_refresh_rate * 1000) {
+			private static final long serialVersionUID = -3948101162657174560L;
+
+			@Override
+			protected void onTick() {
+				stationGUI.updateTaxis(taxisTable);
+			}
+		};
+
+		// Receives information about taxi positions
+		CyclicBehaviour receiveTaxiInformationBehaviour = new CyclicBehaviour(this) {
+			private static final long serialVersionUID = -5635429047598092196L;
+
+			@Override
+			public void action() {
+				// Defines the message template to receive
+				MessageTemplate mt = MessageTemplate.MatchConversationId("taxi-position");
+				ACLMessage msg = myAgent.receive(mt);
+				if(msg != null){
+					AID taxiAID = msg.getSender();
+					String content = msg.getContent();
+
+					// Creates or replaces the taxi information in the HashMap taxisTable
+					taxisTable.put(taxiAID, content);
+				}else{
+					block();
+				}
+			}
+		};
+
+		addBehaviour(updateGUIInformationBehaviour);
+		addBehaviour(receiveTaxiInformationBehaviour);
+
+		/*
 			// new taxi services subscription notifications behaviour
 			DFAgentDescription subscriptionNewTaxiDFTemplate = new DFAgentDescription();
 			ServiceDescription subscriptionNewTaxiServiceTemplate = new ServiceDescription();
@@ -190,7 +250,7 @@ public class TaxiStation extends Agent{
 						Taxi taxiAllocated = allocatePassenger(passengerToAllocate);
 						if(taxiAllocated != null){
 							// Send a message to a taxi to pick up a passenger
-							
+
 						}
 					}
 				}
@@ -199,39 +259,36 @@ public class TaxiStation extends Agent{
 			// --------------------------------------------
 			// add behaviours to station
 			addBehaviour(subscriptionNewTaxiInitiatorBehaviour);
-			addBehaviour(subscriptionNewPassengerInitiatorBehaviour);
+			addBehaviour(subscriptionNewPassengerInitiatorBehaviour);*/
 
+		/*
 			addBehaviour(new CyclicBehaviour(this) {
 
 				@Override
 				public void action() {
 					System.out.println(offServiceTaxis.size() + " / " + passengersQueue.size());
 				}
-			});
-
-			//---------------------------------------------
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+			});*/
 	}
 
 	@Override
 	protected void takeDown() {
-		// disposes GUI
-		stationGUI.dispose();
-		System.out.println(getLocalName() + " closed!");
-
-		// unsubscribe from yellow pages
+		// Deregister from yellow pages
 		try {
 			DFService.deregister(this);
 		} catch (Exception e) {
+			System.out.println("#S >> " + getLocalName() + " >> DFService deregister exception");
 			e.printStackTrace();
 		}
+
+		// Disposes GUI
+		stationGUI.dispose();
+		System.out.println("#S >> " + getLocalName() + " >> Terminated");
 	}
 
 	//---------------------------------------------
 	// Auxiliary functions
-
+/*
 	private Taxi allocatePassenger(Passenger passenger){
 
 		if(offServiceTaxis.size() != 0){
@@ -297,4 +354,5 @@ public class TaxiStation extends Agent{
 	private float DistanceFormula(int x1, int y1, int x2, int y2){
 		return (float) Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 	}
+	*/
 }

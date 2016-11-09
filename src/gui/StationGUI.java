@@ -2,6 +2,8 @@ package gui;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
@@ -11,6 +13,8 @@ import javax.swing.border.EmptyBorder;
 import java.awt.GridLayout;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableModel;
+
+import jade.core.AID;
 
 import java.awt.Color;
 import javax.swing.JLabel;
@@ -22,19 +26,18 @@ import javax.swing.JScrollPane;
 public class StationGUI extends JFrame {
 	private static final long serialVersionUID = -3134066878530981813L;
 
-	// important components
+	// Important components
 	private JPanel contentPane;
 
-	// station table
-	private String[] stationTableColumnNames = {"Name", "X", "Y", "Capacity"};
-	private JTable stationTable;
-	private DefaultTableModel stationTableModel;
-	// passengers table
-	private String[] passengersTablecolumnNames = {"Name", "Xi", "Yi", "Xd", "Yd", "Passengers"};
-	private JTable passengersTable;
-	private DefaultTableModel passengersTableModel;
+	// Taxis table
+	private String[] taxisTableColumnNames = {"Name", "X", "Y", "Cap"};
+	private JTable taxisTable;
 
-	// constructor
+	// Passengers table
+	private String[] passengersTablecolumnNames = {"Name", "Xi", "Yi", "Xd", "Yd", "Num"};
+	private JTable passengersTable;
+
+	// Constructor
 	public StationGUI() {
 		super("Taxi Station");
 
@@ -55,19 +58,14 @@ public class StationGUI extends JFrame {
 		stationLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		stationLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-		stationTable = new JTable();
-		stationTableModel = new DefaultTableModel(0, 0);
-		stationTableModel.setColumnIdentifiers(stationTableColumnNames);
-		stationTable.setModel(stationTableModel);
+		taxisTable = new JTable();
+		DefaultTableModel taxisTableModel = new DefaultTableModel(taxisTableColumnNames, 0);
+		taxisTable.setModel(taxisTableModel);
 
-		stationTable.getColumnModel().getColumn(0).setPreferredWidth(100); // name
-		stationTable.getColumnModel().getColumn(1).setPreferredWidth(30); // xi
-		stationTable.getColumnModel().getColumn(2).setPreferredWidth(30); // yi
-		stationTable.getColumnModel().getColumn(3).setPreferredWidth(50); // free spaces
+		taxisTable.setEnabled(false);
+		taxisTable.setFillsViewportHeight(true);
 
-		JScrollPane stationScrollPane = new JScrollPane(stationTable);
-		stationTable.setEnabled(false);
-		stationTable.setFillsViewportHeight(true);
+		JScrollPane stationScrollPane = new JScrollPane(taxisTable);
 
 		stationPanel.setLayout(new BoxLayout(stationPanel, BoxLayout.Y_AXIS));
 		stationPanel.add(stationLabel);
@@ -85,20 +83,13 @@ public class StationGUI extends JFrame {
 		passengersPanel.add(passengersLabel);
 
 		passengersTable = new JTable();
-		passengersTableModel = new DefaultTableModel(0, 0);
-		passengersTableModel.setColumnIdentifiers(passengersTablecolumnNames);
+		DefaultTableModel passengersTableModel = new DefaultTableModel(passengersTablecolumnNames, 0);
 		passengersTable.setModel(passengersTableModel);
 
-		passengersTable.getColumnModel().getColumn(0).setPreferredWidth(100); // name
-		passengersTable.getColumnModel().getColumn(1).setPreferredWidth(30); // xi
-		passengersTable.getColumnModel().getColumn(2).setPreferredWidth(30); // yi
-		passengersTable.getColumnModel().getColumn(3).setPreferredWidth(30); // xd
-		passengersTable.getColumnModel().getColumn(4).setPreferredWidth(30); // yd
-		passengersTable.getColumnModel().getColumn(5).setPreferredWidth(50); // number of passengers
-
-		JScrollPane passengersScrollPane = new JScrollPane(passengersTable);
 		passengersTable.setEnabled(false);
 		passengersTable.setFillsViewportHeight(true);
+
+		JScrollPane passengersScrollPane = new JScrollPane(passengersTable);
 
 		passengersPanel.add(passengersScrollPane);
 
@@ -128,18 +119,24 @@ public class StationGUI extends JFrame {
 		setVisible(true);
 	}
 
-	// update data to display
-	public void addTaxiToStation(String taxiName, int xCoord, int yCoord, int capacity){
-		Object[] lineToAdd = {taxiName, "" + xCoord, "" + yCoord, "" + capacity};
-		stationTableModel.addRow(lineToAdd);
-	}
+	// Update data to display
+	public void updateTaxis(HashMap<AID, String> taxisHashMap){
+		DefaultTableModel model = new DefaultTableModel(taxisTableColumnNames, 0);
 
-	public void addPassengerToStation(String passengerName,
-			int xInitialCoord, int yInitialCoord,
-			int xDestinationCoord, int yDestinationCoord,
-			int numberOfPassengers){
+		for(Map.Entry<AID, String> entry : taxisHashMap.entrySet()){
+			int xCoord = 0, yCoord = 0, cap = 0;
 
-		Object[] lineToAdd = {passengerName, "" + xInitialCoord, "" + yInitialCoord, "" + xDestinationCoord, "" + yDestinationCoord, "" + numberOfPassengers};
-		passengersTableModel.addRow(lineToAdd);
+			// Regex to read the content of the message
+			// TO DO
+
+			model.addRow(new String[] {
+					entry.getKey().getName(),
+					"" + xCoord,
+					"" + yCoord,
+					"" + cap
+			});
+		}
+
+		taxisTable.setModel(model);
 	}
 }

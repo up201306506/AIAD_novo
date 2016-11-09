@@ -1,47 +1,100 @@
 package agents;
 
+import jade.core.AID;
 import jade.core.Agent;
+import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
+import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
-import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.lang.acl.ACLMessage;
 
 public class TaxiAgent extends Agent {
 	private static final long serialVersionUID = 163911234618964268L;
 
-	// yellow pages service names
-	public static final String _NEW_TAXI = "NEW-TAXI";
+	// Taxi position refresh rate
+	private final int _refresh_rate = 1; // seconds
 
-	// this taxi properties headers
-	public static final String _X_TAXI_COORDS_PROPERTY = "XTAXICOORDS";
-	public static final String _Y_TAXI_COORDS_PROPERTY = "YTAXICOORDS";
-	public static final String _TAXI_CAPACITY_PROPERTY = "TAXICAPACITY";
+	// Taxi dynamic variables
+	private int xCoord;
+	private int yCoord;
+	private int capacity;
+	private int maxCapacity;
 
 	protected void setup(){
+		// Read from arguments
+		xCoord = 1;
+		yCoord = 1;
+		maxCapacity = 4;
+		capacity = maxCapacity;
+
+		// Create taxi agent
+		System.out.println("-T >> " + getLocalName() + " >> Just initialized");
+
+		// --------------------------------------------
+		// Yellow pages -------------------------------
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+
+		// Register the taxi service
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("taxi");
+		sd.setName(getLocalName());
+
+		dfd.addServices(sd);
+
 		try {
-			// create taxi agent interface
-			System.out.println(getLocalName() + " is waiting for passengers!");
-
-			// yellow pages -------------------------------
-			// register this taxi as a new-taxi service
-			DFAgentDescription dfd = new DFAgentDescription();
-			dfd.setName(getAID());
-
-			ServiceDescription sd = new ServiceDescription();
-			sd.setName(getLocalName());
-			sd.setType(_NEW_TAXI);
-
-			// add this taxi service properties
-			sd.addProperties(new Property(_X_TAXI_COORDS_PROPERTY, 1));
-			sd.addProperties(new Property(_Y_TAXI_COORDS_PROPERTY, 2));
-			sd.addProperties(new Property(_TAXI_CAPACITY_PROPERTY, 4));
-
-			dfd.addServices(sd);
-
 			DFService.register(this, dfd);
-			// --------------------------------------------
+		}
+		catch (FIPAException fe) {
+			System.out.println("-T >> " + getLocalName() + " >> DFService register exception");
+			fe.printStackTrace();
+		}
 
-			/*
+		// --------------------------------------------
+		// Behaviours ---------------------------------
+		// Inform taxi station about this taxi position
+		TickerBehaviour informPositionBehaviour = new TickerBehaviour(this, _refresh_rate * 1000) {
+			private static final long serialVersionUID = -1145135997995313675L;
+
+			@Override
+			protected void onTick() {
+				// Prepare search for the taxi station
+				DFAgentDescription dfTemplate = new DFAgentDescription();
+				ServiceDescription serviceTemplate = new ServiceDescription();
+				serviceTemplate.setType("station");
+				dfTemplate.addServices(serviceTemplate);
+
+				// Search for the taxi station
+				AID stationAID = null;
+				try {
+					DFAgentDescription[] searchResult = DFService.search(myAgent, dfTemplate);
+
+					if(searchResult.length != 0){
+						// Station found
+						stationAID = searchResult[0].getName();
+						System.out.println("-T >> " + getLocalName() + " >> Found station >> " + stationAID.getName());
+					}else{
+						// No stations found
+						System.out.println("-T >> " + getLocalName() + " >> Could not find a station");
+					}
+				} catch (FIPAException fe) {
+					fe.printStackTrace();
+				}
+
+				// Inform position if a station was found
+				ACLMessage informPosition = new ACLMessage(ACLMessage.INFORM);
+				informPosition.setConversationId("taxi-position");
+				informPosition.setContent("X" + xCoord + "Y" + yCoord + "C" + capacity);
+				myAgent.send(informPosition);
+
+				System.out.println("-T >> " + getLocalName() + " >> State is: " + "X" + xCoord + "Y" + yCoord + "C" + capacity);
+			}
+		};
+
+		addBehaviour(informPositionBehaviour);
+		// --------------------------------------------
+		/*
 			// Setting up the taxi agent behaviours
 			// Taxi State Machine
 			FSMBehaviour fsm = new FSMBehaviour(this);
@@ -104,10 +157,10 @@ public class TaxiAgent extends Agent {
 
 			// Add state machine behaviour to agent
 			addBehaviour(fsm);*/
+	}
 
-		} catch (Exception e) {
-			System.err.println("Exception in: " + getLocalName());
-			e.printStackTrace();
-		}
+	@Override
+	protected void takeDown() {
+		System.out.println("-T >> " + getLocalName() + " >> Terminated");
 	}
 }
