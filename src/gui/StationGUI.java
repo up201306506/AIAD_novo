@@ -4,6 +4,8 @@ import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
@@ -32,6 +34,7 @@ public class StationGUI extends JFrame {
 	// Taxis table
 	private String[] taxisTableColumnNames = {"Name", "X", "Y", "Cap"};
 	private JTable taxisTable;
+	private DefaultTableModel taxisTableModel;
 
 	// Passengers table
 	private String[] passengersTablecolumnNames = {"Name", "Xi", "Yi", "Xd", "Yd", "Num"};
@@ -59,7 +62,8 @@ public class StationGUI extends JFrame {
 		stationLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
 		taxisTable = new JTable();
-		DefaultTableModel taxisTableModel = new DefaultTableModel(taxisTableColumnNames, 0);
+		taxisTableModel = new DefaultTableModel();
+		taxisTableModel.setColumnIdentifiers(taxisTableColumnNames);
 		taxisTable.setModel(taxisTableModel);
 
 		taxisTable.setEnabled(false);
@@ -121,22 +125,48 @@ public class StationGUI extends JFrame {
 
 	// Update data to display
 	public void updateTaxis(HashMap<AID, String> taxisHashMap){
-		DefaultTableModel model = new DefaultTableModel(taxisTableColumnNames, 0);
+
+		for(int i = taxisTableModel.getRowCount() - 1; i >= 0; i--){
+			taxisTableModel.removeRow(i);
+		}
 
 		for(Map.Entry<AID, String> entry : taxisHashMap.entrySet()){
-			int xCoord = 0, yCoord = 0, cap = 0;
+			int xCoord = -1, yCoord = -1, cap = -1;
 
 			// Regex to read the content of the message
-			// TO DO
+			Pattern p = Pattern.compile("\\w\\d+");
+			Matcher m = p.matcher(entry.getValue());
 
-			model.addRow(new String[] {
-					entry.getKey().getName(),
+			try{
+				while(m.find()){
+					switch(m.group().charAt(0)){
+					case 'X':
+						xCoord = Integer.parseInt(m.group().substring(1));
+						break;
+					case 'Y':
+						yCoord = Integer.parseInt(m.group().substring(1));
+						break;
+					case 'C':
+						cap = Integer.parseInt(m.group().substring(1));
+						break;
+					default:
+						throw new Exception("String not recognized");
+					}
+				}
+
+				if(xCoord == -1 || yCoord == -1 || cap == -1)
+					throw new Exception("A variable was not initialized");
+
+			} catch(Exception e){
+				System.err.println(e.getMessage());
+			}
+
+			taxisTableModel.addRow(new String[] {
+					entry.getKey().getLocalName(),
 					"" + xCoord,
 					"" + yCoord,
 					"" + cap
 			});
 		}
-
-		taxisTable.setModel(model);
 	}
 }

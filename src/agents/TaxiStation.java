@@ -88,7 +88,7 @@ public class TaxiStation extends Agent{
 			@Override
 			public void action() {
 				// Defines the message template to receive
-				MessageTemplate mt = MessageTemplate.MatchConversationId("taxi-position");
+				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
 				ACLMessage msg = myAgent.receive(mt);
 				if(msg != null){
 					AID taxiAID = msg.getSender();

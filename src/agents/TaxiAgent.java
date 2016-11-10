@@ -23,7 +23,7 @@ public class TaxiAgent extends Agent {
 
 	protected void setup(){
 		// Read from arguments
-		xCoord = 1;
+		xCoord = 1; // Temporary values
 		yCoord = 1;
 		maxCapacity = 4;
 		capacity = maxCapacity;
@@ -82,18 +82,31 @@ public class TaxiAgent extends Agent {
 					fe.printStackTrace();
 				}
 
-				// Inform position if a station was found
-				ACLMessage informPosition = new ACLMessage(ACLMessage.INFORM);
-				informPosition.setConversationId("taxi-position");
-				informPosition.setContent("X" + xCoord + "Y" + yCoord + "C" + capacity);
-				myAgent.send(informPosition);
+				if(stationAID != null){
+					// Inform position if a station was found
+					ACLMessage informPosition = new ACLMessage(ACLMessage.INFORM);
+					informPosition.addReceiver(stationAID);
+					informPosition.setConversationId("taxi-position");
+					informPosition.setContent("X" + xCoord + "Y" + yCoord + "C" + capacity);
+					myAgent.send(informPosition);
 
-				System.out.println("-T >> " + getLocalName() + " >> State is: " + "X" + xCoord + "Y" + yCoord + "C" + capacity);
+					System.out.println("-T >> " + getLocalName() + " >> State is: " + "X" + xCoord + "Y" + yCoord + "C" + capacity);
+				}
 			}
 		};
 
+		addBehaviour(new TickerBehaviour(this, 2000) {
+
+			@Override
+			protected void onTick() {
+				xCoord++;
+			}
+		});
+
 		addBehaviour(informPositionBehaviour);
 		// --------------------------------------------
+
+
 		/*
 			// Setting up the taxi agent behaviours
 			// Taxi State Machine
