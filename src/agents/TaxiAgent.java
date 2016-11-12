@@ -95,14 +95,6 @@ public class TaxiAgent extends Agent {
 			}
 		};
 
-		addBehaviour(new TickerBehaviour(this, 2000) {
-
-			@Override
-			protected void onTick() {
-				xCoord++;
-			}
-		});
-
 		addBehaviour(informPositionBehaviour);
 		// --------------------------------------------
 

@@ -2,6 +2,8 @@ package agents;
 
 import java.util.HashMap;
 
+import application.Passenger;
+import application.Taxi;
 import gui.StationGUI;
 import jade.core.AID;
 import jade.core.Agent;
@@ -21,7 +23,8 @@ public class TaxiStation extends Agent{
 	private final int _gui_refresh_rate = 1; // seconds
 
 	private StationGUI stationGUI;
-	private HashMap<AID, String> taxisTable;
+	private HashMap<AID, Taxi> taxisTable;
+	private HashMap<AID, Passenger> passengersTable;
 
 	//---------------------------------------------
 	@Override
@@ -46,6 +49,7 @@ public class TaxiStation extends Agent{
 		// --------------------------------------------
 		// Variables
 		taxisTable = new HashMap<>();
+		passengersTable = new HashMap<>();
 
 		// Creates station interface
 		stationGUI = new StationGUI();
@@ -78,6 +82,7 @@ public class TaxiStation extends Agent{
 			@Override
 			protected void onTick() {
 				stationGUI.updateTaxis(taxisTable);
+				stationGUI.updatePassengers(passengersTable);
 			}
 		};
 
@@ -90,12 +95,61 @@ public class TaxiStation extends Agent{
 				// Defines the message template to receive
 				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
 				ACLMessage msg = myAgent.receive(mt);
-				if(msg != null){
-					AID taxiAID = msg.getSender();
-					String content = msg.getContent();
-
+				if(msg != null &&  msg.getConversationId().equals("taxi-position")){
 					// Creates or replaces the taxi information in the HashMap taxisTable
-					taxisTable.put(taxiAID, content);
+					taxisTable.put(msg.getSender(), new Taxi(msg.getSender(), msg.getContent()));
+				}else{
+					block();
+				}
+			}
+		};
+
+		// Allocate a taxi to a passenger order behaviour
+		final TickerBehaviour allocateTaxiToPassengerBehaviour = new TickerBehaviour(this, 5000) {
+			private static final long serialVersionUID = 666800492457248517L;
+
+			@Override
+			protected void onTick() {
+				// Prepare search for taxis
+				DFAgentDescription dfTemplate = new DFAgentDescription();
+				ServiceDescription serviceTemplate = new ServiceDescription();
+				serviceTemplate.setType("taxi");
+				dfTemplate.addServices(serviceTemplate);
+
+				// Search for the taxi station
+				AID stationAID = null;
+				try {
+					DFAgentDescription[] searchResult = DFService.search(myAgent, dfTemplate);
+
+					if(searchResult.length != 0){
+						// Station found
+						stationAID = searchResult[0].getName();
+						System.out.println("-T >> " + getLocalName() + " >> Found station >> " + stationAID.getName());
+					}else{
+						// No stations found
+						System.out.println("-T >> " + getLocalName() + " >> Could not find a station");
+					}
+				} catch (FIPAException fe) {
+					fe.printStackTrace();
+				}
+			}
+		};
+
+		// Receives request for a taxi from a passenger
+		CyclicBehaviour receivePassengerRequestBehaviour = new CyclicBehaviour(this) {
+			private static final long serialVersionUID = 2641462448146065923L;
+
+			@Override
+			public void action() {
+				// Defines the message template to receive
+				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
+				ACLMessage msg = myAgent.receive(mt);
+				if(msg != null && msg.getConversationId().equals("request-taxi")){
+					// Creates or replaces the taxi information in the HashMap taxisTable
+					passengersTable.put(msg.getSender(), new Passenger(msg.getSender(), msg.getContent()));
+
+					// TODO
+					addBehaviour(allocateTaxiToPassengerBehaviour);
 				}else{
 					block();
 				}
@@ -104,6 +158,7 @@ public class TaxiStation extends Agent{
 
 		addBehaviour(updateGUIInformationBehaviour);
 		addBehaviour(receiveTaxiInformationBehaviour);
+		addBehaviour(receivePassengerRequestBehaviour);
 
 		/*
 			// new taxi services subscription notifications behaviour

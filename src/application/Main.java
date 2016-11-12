@@ -6,8 +6,8 @@ import java.util.regex.Pattern;
 public class Main  {
 
 	public static void main(String[] args) {
-		String str = "X15Y2C3";
-		Pattern p = Pattern.compile("\\w\\d+");
+		String str = "XI1YI2XF3YF4N5";
+		Pattern p = Pattern.compile("[a-zA-Z]+\\d+");
 		Matcher m = p.matcher(str);
 
 		while(m.find()){

@@ -2,7 +2,7 @@ package agents;
 
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.TickerBehaviour;
+import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -37,14 +37,56 @@ public class PassengerAgent extends Agent {
 
 		try {
 			DFService.register(this, dfd);
-		}
-		catch (FIPAException fe) {
+		} catch (FIPAException fe) {
 			System.out.println("=P >> " + getLocalName() + " >> DFService register exception");
 			fe.printStackTrace();
 		}
 
 		// --------------------------------------------
 		// Behaviours ---------------------------------
+		// Rquests the taxi information for a taxi
+		OneShotBehaviour requestTaxiBehaviour = new OneShotBehaviour(this) {
+			private static final long serialVersionUID = 8831324489911981757L;
+
+			@Override
+			public void action() {
+				// Prepare search for the taxi station
+				DFAgentDescription dfTemplate = new DFAgentDescription();
+				ServiceDescription serviceTemplate = new ServiceDescription();
+				serviceTemplate.setType("station");
+				dfTemplate.addServices(serviceTemplate);
+
+				// Search for the taxi station
+				AID stationAID = null;
+				try {
+					DFAgentDescription[] searchResult = DFService.search(myAgent, dfTemplate);
+
+					if(searchResult.length != 0){
+						// Station found
+						stationAID = searchResult[0].getName();
+						System.out.println("=P >> " + getLocalName() + " >> Found station >> " + stationAID.getName());
+					}else{
+						// No stations found
+						System.out.println("=P >> " + getLocalName() + " >> Could not find a station");
+					}
+				} catch (FIPAException fe) {
+					fe.printStackTrace();
+				}
+
+				if(stationAID != null){
+					// Request a taxi if a taxi station was found
+					ACLMessage requestTaxi = new ACLMessage(ACLMessage.REQUEST);
+					requestTaxi.addReceiver(stationAID);
+					requestTaxi.setConversationId("request-taxi");
+					requestTaxi.setContent("XI" + xiCoord + "YI" + yiCoord + "XF" + xfCoord + "YF" + yfCoord + "NP" + number);
+					myAgent.send(requestTaxi);
+
+					System.out.println("=P >> " + getLocalName() + " >> State is: " + "XI" + xiCoord + "YI" + yiCoord + "XF" + xfCoord + "YF" + yfCoord + "NP" + number);
+				}
+			}
+		};
+
+		addBehaviour(requestTaxiBehaviour);
 	}
 
 	@Override
