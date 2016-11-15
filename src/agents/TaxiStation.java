@@ -4,6 +4,7 @@ import java.util.HashMap;
 
 import application.Passenger;
 import application.Taxi;
+import behaviours.AllocatePassengerBehaviour;
 import gui.StationGUI;
 import jade.core.AID;
 import jade.core.Agent;
@@ -104,37 +105,6 @@ public class TaxiStation extends Agent{
 			}
 		};
 
-		// Allocate a taxi to a passenger order behaviour
-		final TickerBehaviour allocateTaxiToPassengerBehaviour = new TickerBehaviour(this, 5000) {
-			private static final long serialVersionUID = 666800492457248517L;
-
-			@Override
-			protected void onTick() {
-				// Prepare search for taxis
-				DFAgentDescription dfTemplate = new DFAgentDescription();
-				ServiceDescription serviceTemplate = new ServiceDescription();
-				serviceTemplate.setType("taxi");
-				dfTemplate.addServices(serviceTemplate);
-
-				// Search for the taxi station
-				AID stationAID = null;
-				try {
-					DFAgentDescription[] searchResult = DFService.search(myAgent, dfTemplate);
-
-					if(searchResult.length != 0){
-						// Station found
-						stationAID = searchResult[0].getName();
-						System.out.println("-T >> " + getLocalName() + " >> Found station >> " + stationAID.getName());
-					}else{
-						// No stations found
-						System.out.println("-T >> " + getLocalName() + " >> Could not find a station");
-					}
-				} catch (FIPAException fe) {
-					fe.printStackTrace();
-				}
-			}
-		};
-
 		// Receives request for a taxi from a passenger
 		CyclicBehaviour receivePassengerRequestBehaviour = new CyclicBehaviour(this) {
 			private static final long serialVersionUID = 2641462448146065923L;
@@ -146,10 +116,11 @@ public class TaxiStation extends Agent{
 				ACLMessage msg = myAgent.receive(mt);
 				if(msg != null && msg.getConversationId().equals("request-taxi")){
 					// Creates or replaces the taxi information in the HashMap taxisTable
-					passengersTable.put(msg.getSender(), new Passenger(msg.getSender(), msg.getContent()));
+					Passenger passengerToAllocate = new Passenger(msg.getSender(), msg.getContent());
+					passengersTable.put(msg.getSender(), passengerToAllocate);
 
-					// TODO
-					addBehaviour(allocateTaxiToPassengerBehaviour);
+					// Process allocation request behaviour
+					addBehaviour(new AllocatePassengerBehaviour(myAgent, passengerToAllocate));
 				}else{
 					block();
 				}
@@ -159,171 +130,6 @@ public class TaxiStation extends Agent{
 		addBehaviour(updateGUIInformationBehaviour);
 		addBehaviour(receiveTaxiInformationBehaviour);
 		addBehaviour(receivePassengerRequestBehaviour);
-
-		/*
-			// new taxi services subscription notifications behaviour
-			DFAgentDescription subscriptionNewTaxiDFTemplate = new DFAgentDescription();
-			ServiceDescription subscriptionNewTaxiServiceTemplate = new ServiceDescription();
-			subscriptionNewTaxiServiceTemplate.setType(TaxiAgent._NEW_TAXI);
-			subscriptionNewTaxiDFTemplate.addServices(subscriptionNewTaxiServiceTemplate);
-
-			SearchConstraints scNewTaxi = new SearchConstraints();
-
-			SubscriptionInitiator subscriptionNewTaxiInitiatorBehaviour = new SubscriptionInitiator(this,
-					DFService.createSubscriptionMessage(this, getDefaultDF(), subscriptionNewTaxiDFTemplate, scNewTaxi)){
-				private static final long serialVersionUID = 8934123373647737440L;
-
-				@Override
-				protected void handleInform(ACLMessage informNewTaxi) {
-					try {
-						DFAgentDescription[] subscriptionNewTaxiNotificationResults = DFService.decodeNotification(informNewTaxi.getContent());
-
-						if(subscriptionNewTaxiNotificationResults.length > 0)
-							for(int i = 0; i < subscriptionNewTaxiNotificationResults.length; i++){
-								DFAgentDescription dfNewTaxiResultsDescription = subscriptionNewTaxiNotificationResults[i];
-								AID providerNewTaxi = dfNewTaxiResultsDescription.getName();
-
-								// search agent to check for the new-taxi service
-								Iterator<?> it = dfNewTaxiResultsDescription.getAllServices();
-								while(it.hasNext()){
-									ServiceDescription serviceResultsDescription = (ServiceDescription) it.next();
-									if(serviceResultsDescription.getType().equals(TaxiAgent._NEW_TAXI)){
-										String taxiName = providerNewTaxi.getLocalName();
-										int taxiXCoord = -1, taxiYCoord = -1, taxiCapacity = -1;
-
-										Iterator<?> itProperties = serviceResultsDescription.getAllProperties();
-										while(itProperties.hasNext()){
-											Property property = (Property) itProperties.next();
-											switch (property.getName()) {
-											case TaxiAgent._X_TAXI_COORDS_PROPERTY:
-												taxiXCoord = Integer.parseInt((String) property.getValue());
-												break;
-											case TaxiAgent._Y_TAXI_COORDS_PROPERTY:
-												taxiYCoord = Integer.parseInt((String) property.getValue());
-												break;
-											case TaxiAgent._TAXI_CAPACITY_PROPERTY:
-												taxiCapacity = Integer.parseInt((String) property.getValue());
-												break;
-											}
-										}
-
-										// add taxi to off service taxis
-										offServiceTaxis.add(new Taxi(providerNewTaxi, taxiXCoord, taxiYCoord, taxiCapacity));
-
-										// add taxi to GUI
-										stationGUI.addTaxiToStation(taxiName, taxiXCoord, taxiYCoord, taxiCapacity);
-									}
-								}
-							}
-					} catch (FIPAException e) {
-						e.printStackTrace();
-					}
-				}
-			};
-
-			// new passenger subscription notifications behaviour
-			DFAgentDescription subscriptionNewPassengerDFTemplate = new DFAgentDescription();
-			ServiceDescription subscriptionNewPassengerServiceTemplate = new ServiceDescription();
-			subscriptionNewPassengerServiceTemplate.setType(PassengerAgent._NEW_PASSENGER);
-			subscriptionNewPassengerDFTemplate.addServices(subscriptionNewPassengerServiceTemplate);
-
-			SearchConstraints scNewPassenger = new SearchConstraints();
-
-			SubscriptionInitiator subscriptionNewPassengerInitiatorBehaviour = new SubscriptionInitiator(this,
-					DFService.createSubscriptionMessage(this, getDefaultDF(), subscriptionNewPassengerDFTemplate, scNewPassenger)){
-				private static final long serialVersionUID = 8934123373647737440L;
-
-				@Override
-				protected void handleInform(ACLMessage informNewPassenger) {
-					try {
-						DFAgentDescription[] subscriptionNewPassengerNotificationResults = DFService.decodeNotification(informNewPassenger.getContent());
-
-						if(subscriptionNewPassengerNotificationResults.length > 0)
-							for(int i = 0; i < subscriptionNewPassengerNotificationResults.length; i++){
-								DFAgentDescription dfNewPassengerResultsDescription = subscriptionNewPassengerNotificationResults[i];
-								AID providerNewPassenger = dfNewPassengerResultsDescription.getName();
-
-								// search agent to check for the new-passenger service
-								Iterator<?> it = dfNewPassengerResultsDescription.getAllServices();
-								while(it.hasNext()){
-									ServiceDescription serviceResultsDescription = (ServiceDescription) it.next();
-									if(serviceResultsDescription.getType().equals(PassengerAgent._NEW_PASSENGER)){
-										String passengerName = providerNewPassenger.getLocalName();
-										int passengerStartingXCoord = -1, passengerStartingYCoord = -1,
-												passengerDestinationXCoord = -1, passengerDestinationYCoord = -1,
-												numberOfPassangers = -1;
-
-										Iterator<?> itProperties = serviceResultsDescription.getAllProperties();
-										while(itProperties.hasNext()){
-											Property property = (Property) itProperties.next();
-											switch (property.getName()) {
-											case PassengerAgent._X_PASSENGER_STARTING_COORDS:
-												passengerStartingXCoord = Integer.parseInt((String) property.getValue());
-												break;
-											case PassengerAgent._Y_PASSENGER_STARTING_COORDS:
-												passengerStartingYCoord = Integer.parseInt((String) property.getValue());
-												break;
-											case PassengerAgent._X_PASSENGER_DESTINATION_COORDS:
-												passengerDestinationXCoord = Integer.parseInt((String) property.getValue());
-												break;
-											case PassengerAgent._Y_PASSENGER_DESTINATION_COORDS:
-												passengerDestinationYCoord = Integer.parseInt((String) property.getValue());
-												break;
-											case PassengerAgent._NUMBER_OF_PASSENGERS:
-												numberOfPassangers = Integer.parseInt((String) property.getValue());
-												break;
-											}
-										}
-
-										// add passenger to taxi station list
-										passengersQueue.add(new Passenger(providerNewPassenger,
-												passengerStartingXCoord, passengerStartingYCoord,
-												passengerDestinationXCoord, passengerDestinationYCoord,
-												numberOfPassangers));
-
-										// add passenger to GUI
-										stationGUI.addPassengerToStation(passengerName,
-												passengerStartingXCoord, passengerStartingYCoord,
-												passengerDestinationXCoord, passengerDestinationYCoord, numberOfPassangers);
-									}
-								}
-							}
-					} catch (FIPAException e) {
-						e.printStackTrace();
-					}
-				}
-			};
-
-			// passengers allocation to taxis behaviour
-			CyclicBehaviour passengersAllocationBehaviour = new CyclicBehaviour(this) {
-
-				@Override
-				public void action() {
-					if(passengersQueue.size() != 0){
-						// considering only non shared taxis
-						Passenger passengerToAllocate = passengersQueue.peekFirst();
-						Taxi taxiAllocated = allocatePassenger(passengerToAllocate);
-						if(taxiAllocated != null){
-							// Send a message to a taxi to pick up a passenger
-
-						}
-					}
-				}
-			};
-
-			// --------------------------------------------
-			// add behaviours to station
-			addBehaviour(subscriptionNewTaxiInitiatorBehaviour);
-			addBehaviour(subscriptionNewPassengerInitiatorBehaviour);*/
-
-		/*
-			addBehaviour(new CyclicBehaviour(this) {
-
-				@Override
-				public void action() {
-					System.out.println(offServiceTaxis.size() + " / " + passengersQueue.size());
-				}
-			});*/
 	}
 
 	@Override
@@ -343,7 +149,7 @@ public class TaxiStation extends Agent{
 
 	//---------------------------------------------
 	// Auxiliary functions
-/*
+	/*
 	private Taxi allocatePassenger(Passenger passenger){
 
 		if(offServiceTaxis.size() != 0){
@@ -409,5 +215,5 @@ public class TaxiStation extends Agent{
 	private float DistanceFormula(int x1, int y1, int x2, int y2){
 		return (float) Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 	}
-	*/
+	 */
 }
