@@ -1,13 +1,18 @@
 package agents;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import jade.core.AID;
 import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
 
 public class TaxiAgent extends Agent {
 	private static final long serialVersionUID = 163911234618964268L;
@@ -95,7 +100,65 @@ public class TaxiAgent extends Agent {
 			}
 		};
 
+		// Receives information requests and answers them
+		CyclicBehaviour informationRequestsHandlerBehaviour = new CyclicBehaviour(this) {
+			private static final long serialVersionUID = 5168158393908888099L;
+
+			@Override
+			public void action() {
+				// Defines the message template to receive
+				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
+				ACLMessage msg = myAgent.receive(mt);
+				if(msg != null &&  msg.getConversationId().equals("request-taxi-info")){
+					// Message information variables holders
+					int xRequestCoord = -1;
+					int yRequestCoord = -1;
+
+					// Regex to read the content of the request
+					Pattern p = Pattern.compile("[a-zA-Z]\\d+");
+					Matcher m = p.matcher(msg.getContent());
+
+					try{
+						while(m.find()){
+							switch(m.group().charAt(0)){
+							case 'X':
+								xRequestCoord = Integer.parseInt(m.group().substring(1));
+								break;
+							case 'Y':
+								yRequestCoord = Integer.parseInt(m.group().substring(1));
+								break;
+							default:
+								throw new Exception("String not recognized");
+							}
+						}
+
+						if(xRequestCoord == -1 || yRequestCoord == -1)
+							throw new Exception("A variable was not initialized");
+
+					} catch(Exception e){
+						System.err.println(e.getMessage());
+					}
+
+					// TODO Calculate distance from current position to request position
+					// Request position coords: xRequestCoord, yRequestCoord
+					// Assuming distance is always 10 to test
+					int distanceToRequestPosition = 10;
+					// -----------------------------------------------------------------
+
+					// Answers to request
+					ACLMessage informPosition = new ACLMessage(ACLMessage.INFORM);
+					informPosition.addReceiver(msg.getSender());
+					informPosition.setConversationId("request-taxi-info-answer");
+					informPosition.setContent("" + distanceToRequestPosition);
+					myAgent.send(informPosition);
+				}else{
+					block();
+				}
+			}
+		};
+
 		addBehaviour(informPositionBehaviour);
+		addBehaviour(informationRequestsHandlerBehaviour);
 		// --------------------------------------------
 
 
