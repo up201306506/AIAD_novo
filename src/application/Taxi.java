@@ -30,20 +30,20 @@ public class Taxi {
 			while(m.find()){
 				switch(m.group().charAt(0)){
 				case 'X':
-					xCoord = Integer.parseInt(m.group().substring(1));
+					this.xCoord = Integer.parseInt(m.group().substring(1));
 					break;
 				case 'Y':
-					yCoord = Integer.parseInt(m.group().substring(1));
+					this.yCoord = Integer.parseInt(m.group().substring(1));
 					break;
 				case 'C':
-					capacity = Integer.parseInt(m.group().substring(1));
+					this.capacity = Integer.parseInt(m.group().substring(1));
 					break;
 				default:
 					throw new Exception("String not recognized");
 				}
 			}
 
-			if(xCoord == -1 || yCoord == -1 || capacity == -1)
+			if(this.xCoord == -1 || this.yCoord == -1 || this.capacity == -1)
 				throw new Exception("A variable was not initialized");
 
 		} catch(Exception e){

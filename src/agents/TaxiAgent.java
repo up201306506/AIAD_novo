@@ -31,7 +31,8 @@ public class TaxiAgent extends Agent {
 		xCoord = 1; // Temporary values
 		yCoord = 1;
 		maxCapacity = 4;
-		capacity = maxCapacity;
+		//capacity = maxCapacity;
+		capacity = 2;
 
 		// Create taxi agent
 		System.out.println("-T >> " + getLocalName() + " >> Just initialized");
@@ -101,7 +102,7 @@ public class TaxiAgent extends Agent {
 		};
 
 		// Receives information requests and answers them
-		CyclicBehaviour informationRequestsHandlerBehaviour = new CyclicBehaviour(this) {
+		CyclicBehaviour requestsHandlerBehaviour = new CyclicBehaviour(this) {
 			private static final long serialVersionUID = 5168158393908888099L;
 
 			@Override
@@ -109,7 +110,87 @@ public class TaxiAgent extends Agent {
 				// Defines the message template to receive
 				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
 				ACLMessage msg = myAgent.receive(mt);
-				if(msg != null &&  msg.getConversationId().equals("request-taxi-info")){
+				if(msg != null &&  msg.getConversationId().equals("request-taxi")){
+					// Message information variables holders
+					boolean hasSharePolicy = false;
+					boolean readSharePolicy = false;
+					int xRequestCoord = -1;
+					int yRequestCoord = -1;
+					int capacityRequest = -1;
+
+					// Regex to read the content of the request
+					Pattern p = Pattern.compile("[a-zA-Z]\\d+");
+					Matcher m = p.matcher(msg.getContent());
+
+					try{
+						while(m.find()){
+							switch(m.group().charAt(0)){
+							case 'S':
+								readSharePolicy = true;
+								if(m.group().substring(1).equals("1"))
+									hasSharePolicy = true;
+								else
+									hasSharePolicy = false;
+								break;
+							case 'X':
+								xRequestCoord = Integer.parseInt(m.group().substring(1));
+								break;
+							case 'Y':
+								yRequestCoord = Integer.parseInt(m.group().substring(1));
+								break;
+							case 'C':
+								capacityRequest = Integer.parseInt(m.group().substring(1));
+								break;
+							default:
+								throw new Exception("String not recognized");
+							}
+						}
+
+						if(!readSharePolicy || xRequestCoord == -1 || yRequestCoord == -1 || capacityRequest == -1)
+							throw new Exception("A variable was not initialized");
+
+					} catch(Exception e){
+						System.err.println(e.getMessage());
+					}
+
+					// Creates reply to the request noting the conversation unique value
+					ACLMessage replyRequest = msg.createReply();
+
+					// Denies request
+					if(capacity == 0 // If taxi has no capacity or
+							|| (!hasSharePolicy && capacity != maxCapacity)){ // If taxi is not empty and does not have a sharing policy
+						replyRequest.setPerformative(ACLMessage.REFUSE);
+						replyRequest.setContent("refuse");
+						myAgent.send(replyRequest);
+					}
+
+					// Answers as available for request
+					replyRequest.setPerformative(ACLMessage.INFORM);
+
+					// TODO Calculate distance from current position to request position
+					// Request position coords: xRequestCoord, yRequestCoord
+					// Assuming distance is always 10 to test
+					int distanceToRequestPosition = 10;
+					// -----------------------------------------------------------------
+
+					replyRequest.setContent("M" + maxCapacity + "C" + capacity + "D" + distanceToRequestPosition);
+					myAgent.send(replyRequest);
+				}else{
+					block();
+				}
+			}
+		};
+
+		// Process allocation request
+		CyclicBehaviour allocationHandlerBehaviour = new CyclicBehaviour(this) {
+			private static final long serialVersionUID = -3122694739221225940L;
+
+			@Override
+			public void action() {
+				// Defines the message template to receive
+				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
+				ACLMessage msg = myAgent.receive(mt);
+				if(msg != null &&  msg.getConversationId().equals("allocate-taxi")){
 					// Message information variables holders
 					int xRequestCoord = -1;
 					int yRequestCoord = -1;
@@ -139,18 +220,11 @@ public class TaxiAgent extends Agent {
 						System.err.println(e.getMessage());
 					}
 
-					// TODO Calculate distance from current position to request position
-					// Request position coords: xRequestCoord, yRequestCoord
-					// Assuming distance is always 10 to test
-					int distanceToRequestPosition = 10;
-					// -----------------------------------------------------------------
-
-					// Answers to request
-					ACLMessage informPosition = new ACLMessage(ACLMessage.INFORM);
-					informPosition.addReceiver(msg.getSender());
-					informPosition.setConversationId("request-taxi-info-answer");
-					informPosition.setContent("" + distanceToRequestPosition);
-					myAgent.send(informPosition);
+					// Creates reply to the request noting the conversation unique value
+					ACLMessage replyAllocation = msg.createReply();
+					replyAllocation.setPerformative(ACLMessage.INFORM);
+					replyAllocation.setContent("ok");
+					myAgent.send(replyAllocation);
 				}else{
 					block();
 				}
@@ -158,73 +232,9 @@ public class TaxiAgent extends Agent {
 		};
 
 		addBehaviour(informPositionBehaviour);
-		addBehaviour(informationRequestsHandlerBehaviour);
+		addBehaviour(requestsHandlerBehaviour);
+		addBehaviour(allocationHandlerBehaviour);
 		// --------------------------------------------
-
-
-		/*
-			// Setting up the taxi agent behaviours
-			// Taxi State Machine
-			FSMBehaviour fsm = new FSMBehaviour(this);
-
-			// Waiting for passengers
-			TickerBehaviour waitingForPassengersBehaviour = new TickerBehaviour(this, 1000){ // 1 second ticker
-				private static final long serialVersionUID = -1145135997995313675L;
-
-				protected void onTick(){
-					// Do something on Tick
-					System.out.println("Taxi waiting ...");
-
-					if(getTickCount() == 3)
-						stop();
-				}
-			};
-
-			fsm.registerFirstState(waitingForPassengersBehaviour, _STATE_WAITING_PASSENGERS);
-
-			// Picking up passengers
-			SimpleBehaviour pickPassengerBehaviours = new SimpleBehaviour(this){
-				private boolean isDone = false;
-
-				@Override
-				public void action() {
-					System.out.println("It ended!!");
-					isDone = true;
-				}
-
-				@Override
-				public boolean done() {
-					return isDone;
-				}
-			};
-
-			// Servicing passengers
-
-			SimpleBehaviour simpleEndTest = new SimpleBehaviour(this){
-				private boolean isDone = false;
-
-				@Override
-				public void action() {
-					System.out.println("It ended!!");
-					isDone = true;
-				}
-
-				@Override
-				public boolean done() {
-					return isDone;
-				}
-			};
-
-			fsm.registerLastState(simpleEndTest, _STATE_TEST);
-
-			//fsm.registerState(BEHAVIOUR, STATE);
-			//fsm.registerLastState(BEHAVIOUR, STATE);
-
-			// States sequence / transitions
-			fsm.registerDefaultTransition(_STATE_WAITING_PASSENGERS, _STATE_TEST);
-
-			// Add state machine behaviour to agent
-			addBehaviour(fsm);*/
 	}
 
 	@Override
