@@ -17,7 +17,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
-public class TaxiStation extends Agent{
+public class TaxiStationAgent extends Agent{
 	private static final long serialVersionUID = 488752805219045668L;
 
 	// GUI
@@ -114,13 +114,13 @@ public class TaxiStation extends Agent{
 				// Defines the message template to receive
 				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
 				ACLMessage msg = myAgent.receive(mt);
-				if(msg != null && msg.getConversationId().equals("request-taxi")){
+				if(msg != null && msg.getConversationId().equals("request-pickup")){
 					// Creates or replaces the taxi information in the HashMap taxisTable
 					Passenger passengerToAllocate = new Passenger(msg.getSender(), msg.getContent());
 					passengersTable.put(msg.getSender(), passengerToAllocate);
 
 					// Process allocation request behaviour
-					addBehaviour(new AllocatePassengerBehaviour(myAgent, passengerToAllocate));
+					addBehaviour(new AllocatePassengerBehaviour(myAgent, passengerToAllocate, false/* TODO indicate sharing policy, false for no sharing */));
 				}else{
 					block();
 				}

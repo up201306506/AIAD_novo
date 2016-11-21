@@ -77,7 +77,7 @@ public class PassengerAgent extends Agent {
 					// Request a taxi if a taxi station was found
 					ACLMessage requestTaxi = new ACLMessage(ACLMessage.REQUEST);
 					requestTaxi.addReceiver(stationAID);
-					requestTaxi.setConversationId("request-taxi");
+					requestTaxi.setConversationId("request-pickup");
 					requestTaxi.setContent("XI" + xiCoord + "YI" + yiCoord + "XF" + xfCoord + "YF" + yfCoord + "NP" + number);
 					myAgent.send(requestTaxi);
 
