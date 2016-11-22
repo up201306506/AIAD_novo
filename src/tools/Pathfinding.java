@@ -3,7 +3,6 @@ package tools;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.PriorityQueue;
-import application.*;
 
 public class Pathfinding {
 	
@@ -240,7 +239,7 @@ public class Pathfinding {
 			//And if we're here... no path was found.
 			return new ArrayList<Map_Cell>();
 		}
-		public ArrayList<Map_Cell>  getShortestPathDijkstra(Taxi origin, Passenger destination){
+		/*public ArrayList<Map_Cell>  getShortestPathDijkstra(Taxi origin, Passenger destination){
 			//Run
 			//??? ? = getShortestPathDijkstra(origin.getXCoord(), origin.getYCoord(), destination.getXiCoord(), destination.getYiCoord(), Map);
 			
@@ -253,7 +252,7 @@ public class Pathfinding {
 			
 
 			return new ArrayList<Map_Cell>();
-		}
+		}*/
 		
 		
 		
@@ -322,12 +321,12 @@ public class Pathfinding {
 	}
 	
 	//Taxi to Passenger
-	public static double euclidean_distance(Taxi origin, Passenger destination){
+	/*public static double euclidean_distance(Taxi origin, Passenger destination){
 		return Math.sqrt( (destination.getYiCoord()-origin.getYCoord())*(destination.getYiCoord()-origin.getYCoord()) + (destination.getXiCoord()-origin.getXCoord())*(destination.getXiCoord()-origin.getXCoord()) );	
 	}
 	public static int manhattan_distance(Taxi origin, Passenger destination){
 		return (Math.abs(destination.getXiCoord() - origin.getXCoord()) + Math.abs(destination.getYiCoord() - origin.getYCoord()));	
-	}
+	}*/
 
 
 }
