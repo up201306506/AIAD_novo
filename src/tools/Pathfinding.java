@@ -5,6 +5,8 @@ import java.util.PriorityQueue;
 import application.*;
 
 public class Pathfinding {
+	
+	final static boolean _DEBUG = false;
 
 	public static class Map_Cell implements Comparable<Map_Cell>{
 		public int x = 0;
@@ -72,7 +74,10 @@ public class Pathfinding {
 				System.err.println("Could not load map data to Pathfinding class, invalid map");
 			}
 		}
-
+		public Map_Cell getCell(int x, int y){
+			return datamap[y][x];
+		}
+		
 		public boolean valid_map_size(byte[][] data){
 			if(rows != data.length)
 				return false;
@@ -84,9 +89,7 @@ public class Pathfinding {
 			return true;
 		}
 		
-		public Map_Cell getCell(int x, int y){
-			return datamap[y][x];
-		}
+		
 		public ArrayList<Map_Cell> getNeighbours(Map_Cell cell){
 			return getNeighbours(cell.x, cell.y);
 		}
@@ -122,6 +125,21 @@ public class Pathfinding {
 			
 			return result;
 		}
+		
+		public boolean flushDataFromCells(){
+			if(loaded)
+				for(int c = 0; c < cols; c++)
+					for(int r = 0; r < rows; r++){
+						Map_Cell cell = getCell(c,r);
+	
+						cell.visited = false;
+						cell.previous = null;
+						cell.effort = Integer.MAX_VALUE;
+						cell.distance = Integer.MAX_VALUE;
+					}
+			return loaded;
+		}
+		
 		public boolean load_map_blocks(byte[][] data ){
 			if(!valid_map_size(data))
 				return false;
@@ -197,32 +215,75 @@ public class Pathfinding {
 	/*
 	 * 	Path Finding functions
 	 */
-	public static void getPathDijkstra(int or_x, int or_y, int dest_x, int dest_y, Path_Finding_Map Map){
+	public static void getShortestPathDijkstra(int or_x, int or_y, int dest_x, int dest_y, Path_Finding_Map Map){
 		
 		//Create Queue
 		PriorityQueue<Map_Cell> Q = new  PriorityQueue<Map_Cell>();
 		
+		//Flush Data from previous searches
+		Map.flushDataFromCells();
+		
 		//Set origin Distance to 0
-		Map_Cell origin = Map.datamap[or_x][or_y];
+		Map_Cell origin = Map.getCell(or_x, or_y);
 		origin.distance = 0;
 		
 		//Add origin to queue
 		Q.add(origin);
 		
 		//Iterate through the Queue
+		while(!Q.isEmpty()){
+			Map_Cell cell = Q.remove(); //Remove top cell from Queue
+			cell.visited = true;
+			
+			if(_DEBUG)System.out.println("From cell (" + cell.x + "," + cell.y + ")...");
+			
+			
+			if(cell.x == dest_x && cell.y == dest_y) //if cell is the destination
+			{
+				if(_DEBUG)System.out.println("We found the destination!\nLeftover Queue size: "+Q.size());
+				
+				return; //Function to retrieve a path from destination goes here
+				
+			}
+			
+			//otherwise, check the neighbour cells
+			ArrayList<Map_Cell> closest = Map.getNeighbours(cell);
+			for(Map_Cell neighbour : closest){
+				
+				if(_DEBUG)System.out.println("Checked: (" + neighbour.x + "," + neighbour.y + ")");
+				
+				//Consider their new distance from source to current's + 1
+				int new_distance = cell.distance + 1;
+				
+				// But only update it if this is the shortest known path to the neighbour
+				// And if it is... 
+				if(neighbour.distance > new_distance )
+				{
+					neighbour.distance = new_distance;
+					neighbour.previous = cell; //...set the current cell as the previous step in the path
+					Q.add(neighbour); //... and send the neighbour to the queue  
+					
+					if(_DEBUG)System.out.println("Added to queue!");
+				}
+			}
+			
+			
+		}
 		
 		return;
 	}
-	public static void getPathDijkstra(Taxi origin, Passenger destination, Path_Finding_Map Map){
+	public static void getShortestPathDijkstra(Taxi origin, Passenger destination, Path_Finding_Map Map){
 		//Run
-		//??? ? = getPathDijkstra(origin.getXCoord(), origin.getYCoord(), destination.getXiCoord(), destination.getYiCoord(), Map);
+		//??? ? = getShortestPathDijkstra(origin.getXCoord(), origin.getYCoord(), destination.getXiCoord(), destination.getYiCoord(), Map);
 		
 		return;
 	}
-	public static void getPathDijkstra(Map_Cell origin, Map_Cell destination, Path_Finding_Map Map){
+	public static void getShortestPathDijkstra(Map_Cell origin, Map_Cell destination, Path_Finding_Map Map){
 		//Run
-		//??? ? = getPathDijkstra(origin.x, origin.y, destination.x, destination.y, Map);
+		//??? ? = getShortestPathDijkstra(origin.x, origin.y, destination.x, destination.y, Map);
 		
 		return;
 	}
 }
+
+

@@ -147,6 +147,11 @@ public class Test_Pathfinding {
 	@Test
 	public void test_Path_Functions() {
 
+		//Circular map
+		byte[][] test_datamap = {{1,1,1,1,1},{1,0,0,0,1},{1,0,0,0,1},{1,0,0,0,1},{1,1,1,1,1}};
+		Path_Finding_Map TestMap = new Path_Finding_Map(5, 5, test_datamap, (byte) 0);
+		
+		Pathfinding.getShortestPathDijkstra(0,4,4,1,TestMap);
 		
 		
 		
@@ -170,7 +175,7 @@ public class Test_Pathfinding {
 	public void test_IndexOutofBounds_Neighbours_y() {
 		byte[][] test_datamap = {{1,1,1,1},{1,1,1,1},{1,1,1,1}};
 		Path_Finding_Map TestMap = new Path_Finding_Map(4, 3, test_datamap, (byte) 0);
-		TestMap.getNeighbours(1, 5);
+		TestMap.getNeighbours(1, 3);
 		assert(true);
 	}
 }
