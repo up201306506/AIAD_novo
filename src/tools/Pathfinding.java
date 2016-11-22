@@ -1,7 +1,7 @@
 package tools;
 
+import java.util.ArrayList;
 import java.util.PriorityQueue;
-
 import application.*;
 
 public class Pathfinding {
@@ -12,9 +12,9 @@ public class Pathfinding {
 		public byte value = 0;
 		public boolean visited = false;
 		public Map_Cell previous;
-		public int effort = Integer.MAX_VALUE;
-		public int distance = Integer.MAX_VALUE;
-		//public double distance;
+		public int effort = Integer.MAX_VALUE; //Effort expected to REACH the DESTINATION
+		public int distance = Integer.MAX_VALUE; //Distance travelled FROM SOURCE cell
+		
 		
 
 		//Constructor
@@ -33,7 +33,11 @@ public class Pathfinding {
 		public int compareTo(Map_Cell another) {
 			return Integer.valueOf(this.distance).compareTo(another.distance);
 		}
-		
+		/* A* comparator
+		public int compareTo(Map_Cell another) {
+			return Integer.valueOf(this.distance + this.effort).compareTo(another.distance + another.effort);
+		}
+		*/
 	}
 
 	public static class Path_Finding_Map{
@@ -80,6 +84,44 @@ public class Pathfinding {
 			return true;
 		}
 		
+		public Map_Cell getCell(int x, int y){
+			return datamap[y][x];
+		}
+		public ArrayList<Map_Cell> getNeighbours(Map_Cell cell){
+			return getNeighbours(cell.x, cell.y);
+		}
+		public ArrayList<Map_Cell> getNeighbours(int x, int y){
+			ArrayList<Map_Cell> result = new ArrayList<>();
+			
+			if(!loaded)
+				return result;
+			
+			if(x < 0 || x >= cols) 
+				throw new IndexOutOfBoundsException("Index x = "+ x +" in neighbour search function is out of bounds!");
+			if(y < 0 || y >= rows) 
+				throw new IndexOutOfBoundsException("Index y = "+ y +" in neighbour search function is out of bounds!");		
+			
+			
+			//up
+			if(y != 0)
+				if(getCell(x,y-1).value != wall)
+					result.add(getCell(x,y-1));
+			//down
+			if(y != rows-1)
+				if(getCell(x,y+1).value != wall)
+					result.add(getCell(x,y+1));
+			//left
+			if(x != 0)
+				if(getCell(x-1,y).value != wall)
+					result.add(getCell(x-1,y));
+			//right
+			if(x != cols-1)
+				if(getCell(x+1,y).value != wall)
+					result.add(getCell(x+1,y));
+			
+			
+			return result;
+		}
 		public boolean load_map_blocks(byte[][] data ){
 			if(!valid_map_size(data))
 				return false;
@@ -97,9 +139,10 @@ public class Pathfinding {
 				switch(option){
 					case 1: System.out.print("x");  break;
 					case 2: System.out.print("y");  break;
-					case 3: System.out.print("visited");  break;
-					case 4: System.out.print("effort");  break;
-					case 5: System.out.print("distance");  break;
+					case 3: System.out.print("walls");  break;
+					case 4: System.out.print("visited");  break;
+					case 5: System.out.print("effort");  break;
+					case 6: System.out.print("distance");  break;
 					default: System.out.print("block");  break;
 					
 				}
@@ -110,9 +153,15 @@ public class Pathfinding {
 						switch(option){
 						case 1: System.out.print(datamap[i][j].x + " "); break;
 						case 2: System.out.print(datamap[i][j].y + " "); break;
-						case 3: System.out.print(datamap[i][j].visited + " "); break;
-						case 4: System.out.print(datamap[i][j].effort + " "); break;
-						case 5: System.out.print(datamap[i][j].distance + " "); break;
+						case 3: 
+							if(datamap[i][j].value == wall)
+								System.out.print("#"); 
+							else
+								System.out.print(" "); 
+							break;
+						case 4: System.out.print(datamap[i][j].visited + " "); break;
+						case 5: System.out.print(datamap[i][j].effort + " "); break;
+						case 6: System.out.print(datamap[i][j].distance + " "); break;
 						default: System.out.print(datamap[i][j].value + " "); break;
 						}
 						System.out.print(" ");
@@ -128,8 +177,7 @@ public class Pathfinding {
 
 	/*
 	 * 	Distance functions
-	 */
-	
+	 */	
 	//Map Cell
 	public static double euclidean_distance(Map_Cell origin, Map_Cell destination){
 		return Math.sqrt( (destination.y-origin.y)*(destination.y-origin.y) + (destination.x-origin.x)*(destination.x-origin.x) );	
@@ -149,11 +197,32 @@ public class Pathfinding {
 	/*
 	 * 	Path Finding functions
 	 */
-	
-	public static void getPathDijkstra(Taxi origin, Passenger destination){
+	public static void getPathDijkstra(int or_x, int or_y, int dest_x, int dest_y, Path_Finding_Map Map){
+		
+		//Create Queue
 		PriorityQueue<Map_Cell> Q = new  PriorityQueue<Map_Cell>();
+		
+		//Set origin Distance to 0
+		Map_Cell origin = Map.datamap[or_x][or_y];
+		origin.distance = 0;
+		
+		//Add origin to queue
+		Q.add(origin);
+		
+		//Iterate through the Queue
 		
 		return;
 	}
-	
+	public static void getPathDijkstra(Taxi origin, Passenger destination, Path_Finding_Map Map){
+		//Run
+		//??? ? = getPathDijkstra(origin.getXCoord(), origin.getYCoord(), destination.getXiCoord(), destination.getYiCoord(), Map);
+		
+		return;
+	}
+	public static void getPathDijkstra(Map_Cell origin, Map_Cell destination, Path_Finding_Map Map){
+		//Run
+		//??? ? = getPathDijkstra(origin.x, origin.y, destination.x, destination.y, Map);
+		
+		return;
+	}
 }

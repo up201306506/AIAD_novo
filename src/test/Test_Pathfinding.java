@@ -8,16 +8,9 @@ import org.junit.Test;
 
 import tools.Pathfinding;
 import tools.Pathfinding.*;
-import application.*;
 
 public class Test_Pathfinding {
 
-	@Test(expected=IndexOutOfBoundsException.class)
-	public void test_IndexOutofBounds_Mapcell() {
-		Map_Cell TestCell = new Map_Cell(-1,0);
-		if (TestCell.x == -1)
-			assertTrue(true);
-	}
 	
 	@Test
 	public void test_Mapcell_class() {
@@ -58,8 +51,19 @@ public class Test_Pathfinding {
 		byte[][] test_datamap_wrong_cols = {{1,1,1},{1,1,1},{1,1,1}};
 		byte[][] test_datamap_wrong_rows = {{1,1,1,1},{1,1,1,1}};
 		
+		//Coordinate Concordance
+		for(int i = 0; i < 3; i++)
+			for(int j = 0; j < 4; j++){
+				assertEquals(TestMap.datamap[i][j].y, i);
+				assertEquals(TestMap.datamap[i][j].x, j);
+			}
+		for(int c = 0; c < 4; c++)
+			for(int r = 0; r < 3; r++){
+				assertEquals(TestMap.getCell(c,r).x, c);
+				assertEquals(TestMap.getCell(c,r).y, r);
+			}
 		
-		//Showing loaded map
+		//Failsafing/Showing loaded map
 		assertFalse(TestMap.load_map_blocks(test_datamap_wrong_rows));
 		assertFalse(TestMap.display_map_console(0));
 		assertFalse(TestMap.load_map_blocks(test_datamap_wrong_cols));
@@ -67,12 +71,51 @@ public class Test_Pathfinding {
 		
 		assertTrue(TestMap.load_map_blocks(test_datamap));
 		
-		
 		assertTrue(TestMap.display_map_console(1));
 		assertTrue(TestMap.display_map_console(2));
 		assertTrue(TestMap.display_map_console(0));
+		assertTrue(TestMap.display_map_console(3));
 		
-
+		//Neighbour Cell Retrieval
+			//Empty map
+		byte[][] test_datamap2 = {{1,1,1,1,1,1,1,1,1,1},{1,1,1,1,1,1,1,1,1,1},{1,1,1,1,1,1,1,1,1,1},{1,1,1,1,1,1,1,1,1,1}};
+		TestMap = new Path_Finding_Map(10, 4, test_datamap2, (byte) 0);
+		/*
+		TestMap.display_map_console(0);
+		System.out.println(TestMap.getNeighbours(0,0).size());
+		System.out.println(TestMap.getNeighbours(9,0).size());
+		System.out.println(TestMap.getNeighbours(0,3).size());
+		System.out.println(TestMap.getNeighbours(9,3).size());
+		*/
+		for(int c = 0; c < 10; c++)
+			for(int r = 0; r < 4; r++){
+				if(c == 0 || c == 10-1)
+					if(r == 0 || r == 4-1)			
+						assertEquals(TestMap.getNeighbours(c,r).size(), 2);
+					else
+						assertEquals(TestMap.getNeighbours(c,r).size(), 3);
+				else
+					if(r == 0 || r == 4-1)				
+						assertEquals(TestMap.getNeighbours(c,r).size(), 3);
+					else
+						assertEquals(TestMap.getNeighbours(c,r).size(), 4);
+						
+			}
+			//Pathway of possible scenarios Map
+		byte[][] test_datamap3 = {{0,0,0,1,0},{1,1,1,1,1},{0,0,1,1,0}};
+		TestMap = new Path_Finding_Map(5, 3, test_datamap3, (byte) 0);
+		for(int i = 0; i < 5; i++){
+			switch(i){
+			case 0: assertEquals(TestMap.getNeighbours(i,1).size(), 1); break;
+			case 1: assertEquals(TestMap.getNeighbours(i,1).size(), 2); break;
+			case 2: assertEquals(TestMap.getNeighbours(i,1).size(), 3); break;
+			case 3: assertEquals(TestMap.getNeighbours(i,1).size(), 4); break;
+			case 4: assertEquals(TestMap.getNeighbours(i,1).size(), 1); break;
+			default: break;
+			}
+		}
+		
+		
 		
 	}
 
@@ -109,4 +152,25 @@ public class Test_Pathfinding {
 		
 	}
 
+	
+	@Test(expected=IndexOutOfBoundsException.class)
+	public void test_IndexOutofBounds_Mapcell() {
+		Map_Cell TestCell = new Map_Cell(-1,0);
+		if (TestCell.x == -1)
+			assertTrue(true);
+	}
+	@Test(expected=IndexOutOfBoundsException.class)
+	public void test_IndexOutofBounds_Neighbours_x() {
+		byte[][] test_datamap = {{1,1,1,1},{1,1,1,1},{1,1,1,1}};
+		Path_Finding_Map TestMap = new Path_Finding_Map(4, 3, test_datamap, (byte) 0);
+		TestMap.getNeighbours(-1, 0);
+		assert(true);
+	}
+	@Test(expected=IndexOutOfBoundsException.class)
+	public void test_IndexOutofBounds_Neighbours_y() {
+		byte[][] test_datamap = {{1,1,1,1},{1,1,1,1},{1,1,1,1}};
+		Path_Finding_Map TestMap = new Path_Finding_Map(4, 3, test_datamap, (byte) 0);
+		TestMap.getNeighbours(1, 5);
+		assert(true);
+	}
 }
