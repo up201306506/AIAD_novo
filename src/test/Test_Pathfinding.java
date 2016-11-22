@@ -2,6 +2,7 @@ package test;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.PriorityQueue;
 
 import org.junit.Test;
@@ -151,7 +152,8 @@ public class Test_Pathfinding {
 		byte[][] test_datamap = {{1,1,1,1,1},{1,0,0,0,1},{1,0,0,0,1},{1,0,0,0,1},{1,1,1,1,1}};
 		Path_Finding_Map TestMap = new Path_Finding_Map(5, 5, test_datamap, (byte) 0);
 		
-		Pathfinding.getShortestPathDijkstra(0,4,4,1,TestMap);
+		ArrayList<Map_Cell> testPath = TestMap.getShortestPathDijkstra(0,4,3,0);
+		TestMap.display_path_console(testPath,3,0);
 		
 		
 		
