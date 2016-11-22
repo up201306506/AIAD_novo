@@ -1,6 +1,9 @@
 package test;
 
 import static org.junit.Assert.*;
+
+import java.util.PriorityQueue;
+
 import org.junit.Test;
 
 import tools.Pathfinding;
@@ -11,7 +14,7 @@ public class Test_Pathfinding {
 
 	@Test(expected=IndexOutOfBoundsException.class)
 	public void test_IndexOutofBounds_Mapcell() {
-		Map_cell TestCell = new Map_cell(-1,0);
+		Map_Cell TestCell = new Map_Cell(-1,0);
 		if (TestCell.x == -1)
 			assertTrue(true);
 	}
@@ -21,10 +24,27 @@ public class Test_Pathfinding {
 		
 		for(int i = 0; i < 50; i++){
 			for(int j = 0; j <50; j++ ){
-				Map_cell TestCell = new Map_cell(i,j);
+				Map_Cell TestCell = new Map_Cell(i,j);
 				assert(TestCell.x == i);
 				assert(TestCell.y == j);
 			}
+		}
+		
+		PriorityQueue<Map_Cell> q = new  PriorityQueue<Map_Cell>();
+		Map_Cell m1 = new Map_Cell(0, 0); m1.distance = 4;
+		Map_Cell m2 = new Map_Cell(0, 0); m2.distance = 3;
+		Map_Cell m3 = new Map_Cell(0, 0); m3.distance = 9;
+		Map_Cell m4 = new Map_Cell(0, 0); m4.distance = 9;
+		Map_Cell m5 = new Map_Cell(0, 0); m5.distance = 10;
+		Map_Cell m6 = new Map_Cell(0, 0); m6.distance = 1000;
+		q.add(m1); q.add(m2); q.add(m3); 
+		q.add(m4); q.add(m5); q.add(m6); 
+		int i = 0;
+		while(!q.isEmpty()){
+			int current = q.remove().distance;
+			assert(current >= i);
+			if(current > i)
+				i = current;
 		}
 	}
 	
@@ -32,7 +52,7 @@ public class Test_Pathfinding {
 	public void test_Path_finding_class() {
 		
 
-		Path_finding_map TestMap = new Path_finding_map(4, 3, (byte) 0);
+		Path_Finding_Map TestMap = new Path_Finding_Map(4, 3, (byte) 0);
 
 		byte[][] test_datamap = {{1,1,1,1},{1,0,0,1},{1,1,1,1}};
 		byte[][] test_datamap_wrong_cols = {{1,1,1},{1,1,1},{1,1,1}};
@@ -59,7 +79,7 @@ public class Test_Pathfinding {
 	@Test
 	public void test_Distance_Functions() {
 		byte[][] test_datamap = {{1,1,1,1},{1,0,0,1},{1,0,0,1},{1,1,1,1}};
-		Path_finding_map TestMap = new Path_finding_map(4, 4, test_datamap);
+		Path_Finding_Map TestMap = new Path_Finding_Map(4, 4, test_datamap, (byte) 0);
 		
 		
 		assertEquals(Pathfinding.euclidean_distance(TestMap.datamap[1][1], TestMap.datamap[2][2]), Math.sqrt(2), 0);
@@ -83,7 +103,10 @@ public class Test_Pathfinding {
 	
 	@Test
 	public void test_Path_Functions() {
+
+		
 		
 		
 	}
+
 }

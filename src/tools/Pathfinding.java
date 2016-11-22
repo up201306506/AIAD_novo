@@ -1,19 +1,24 @@
 package tools;
 
+import java.util.PriorityQueue;
+
 import application.*;
 
 public class Pathfinding {
 
-	public static class Map_cell{
+	public static class Map_Cell implements Comparable<Map_Cell>{
 		public int x = 0;
 		public int y = 0;
 		public byte value = 0;
 		public boolean visited = false;
+		public Map_Cell previous;
 		public int effort = Integer.MAX_VALUE;
 		public int distance = Integer.MAX_VALUE;
+		//public double distance;
+		
 
 		//Constructor
-		public Map_cell (int x, int y){
+		public Map_Cell (int x, int y){
 			this.x = x;
 			this.y = y;
 			if(this.x < 0){
@@ -23,28 +28,38 @@ public class Pathfinding {
 				throw new IndexOutOfBoundsException("Index y = "+ y +" is out of bounds!"); 
 			}
 		}
+
+		//Comparator
+		public int compareTo(Map_Cell another) {
+			return Integer.valueOf(this.distance).compareTo(another.distance);
+		}
+		
 	}
 
-	public static class Path_finding_map{
+	public static class Path_Finding_Map{
 		public int cols = 0;
 		public int rows = 0;
-		public Map_cell[][] datamap;
+		public Map_Cell[][] datamap;
+		public byte wall = 0;
 		public boolean loaded = false;
+		
+		
 
 		//Constructor
-		public Path_finding_map( int c, int r, byte fill ){
+		public Path_Finding_Map( int c, int r, byte fill ){
 			this.cols = c;
 			this.rows = r;
-			datamap = new Map_cell[r][c];
+			datamap = new Map_Cell[r][c];
 			for(int i = 0; i < rows; i++){
 				for(int j = 0; j < cols; j++){
-					datamap[i][j] = new Map_cell(j, i);
+					datamap[i][j] = new Map_Cell(j, i);
 					datamap[i][j].value = fill;
 				}
 			}
 		}
-		public Path_finding_map(int c, int r, byte[][] data){
+		public Path_Finding_Map(int c, int r, byte[][] data, byte wall){
 			this(c, r, (byte) 0);
+			this.wall = wall;
 			try{
 				if(!load_map_blocks(data))
 					throw new IllegalArgumentException();
@@ -116,10 +131,10 @@ public class Pathfinding {
 	 */
 	
 	//Map Cell
-	public static double euclidean_distance(Map_cell origin, Map_cell destination){
+	public static double euclidean_distance(Map_Cell origin, Map_Cell destination){
 		return Math.sqrt( (destination.y-origin.y)*(destination.y-origin.y) + (destination.x-origin.x)*(destination.x-origin.x) );	
 	}
-	public static int manhattan_distance(Map_cell origin, Map_cell destination){
+	public static int manhattan_distance(Map_Cell origin, Map_Cell destination){
 		return (Math.abs(destination.x - origin.x) + Math.abs(destination.y - origin.y));	
 	}
 	
@@ -135,9 +150,9 @@ public class Pathfinding {
 	 * 	Path Finding functions
 	 */
 	
-	
-	//change return type to whatever the path type is
-	public static void getPath(Taxi origin, Passenger destination){
+	public static void getPathDijkstra(Taxi origin, Passenger destination){
+		PriorityQueue<Map_Cell> Q = new  PriorityQueue<Map_Cell>();
+		
 		return;
 	}
 	
