@@ -1,4 +1,6 @@
 /agents/
-/behaviours/
 /application/
+/behaviours/
+/utils/
+/gui/
 /test/

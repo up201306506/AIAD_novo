@@ -1,5 +1,7 @@
 package agents;
 
+import java.io.IOException;
+
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.OneShotBehaviour;
@@ -8,6 +10,7 @@ import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
+import utils.DataSerializable;
 
 public class PassengerAgent extends Agent {
 	private static final long serialVersionUID = 8180459495842676730L;
@@ -17,7 +20,7 @@ public class PassengerAgent extends Agent {
 	private int yiCoord;
 	private int xfCoord;
 	private int yfCoord;
-	private int number;
+	private int numberOfPassengers;
 
 	protected void setup() {
 		// Read from arguments
@@ -25,7 +28,7 @@ public class PassengerAgent extends Agent {
 		yiCoord = 5;
 		xfCoord = 10;
 		yfCoord = 10;
-		number = 3;
+		numberOfPassengers = 3;
 
 		// Create passenger agent
 		System.out.println("=P >> " + getLocalName() + " >> Just initialized");
@@ -44,22 +47,22 @@ public class PassengerAgent extends Agent {
 
 		// --------------------------------------------
 		// Behaviours ---------------------------------
-		// Rquests the taxi information for a taxi
+		// Request taxi pick up
 		OneShotBehaviour requestTaxiBehaviour = new OneShotBehaviour(this) {
 			private static final long serialVersionUID = 8831324489911981757L;
 
 			@Override
 			public void action() {
 				// Prepare search for the taxi station
-				DFAgentDescription dfTemplate = new DFAgentDescription();
-				ServiceDescription serviceTemplate = new ServiceDescription();
-				serviceTemplate.setType("station");
-				dfTemplate.addServices(serviceTemplate);
+				DFAgentDescription dfAgentDescription = new DFAgentDescription();
+				ServiceDescription serviceDescription = new ServiceDescription();
+				serviceDescription.setType("station");
+				dfAgentDescription.addServices(serviceDescription);
 
 				// Search for the taxi station
 				AID stationAID = null;
 				try {
-					DFAgentDescription[] searchResult = DFService.search(myAgent, dfTemplate);
+					DFAgentDescription[] searchResult = DFService.search(myAgent, dfAgentDescription);
 
 					if(searchResult.length != 0){
 						// Station found
@@ -74,15 +77,23 @@ public class PassengerAgent extends Agent {
 				}
 
 				if(stationAID != null){
-					// Request a taxi if a taxi station was found
+					// Request pick up from taxi
 					ACLMessage requestTaxi = new ACLMessage(ACLMessage.REQUEST);
 					requestTaxi.addReceiver(stationAID);
 					requestTaxi.setConversationId("request-pickup");
-					requestTaxi.setContent("XI" + xiCoord + "YI" + yiCoord + "XF" + xfCoord + "YF" + yfCoord + "NP" + number);
+					try {
+						requestTaxi.setContentObject(new DataSerializable.PassengerData(myAgent.getAID(),
+								xiCoord, yiCoord, xfCoord, yfCoord, numberOfPassengers));
+						requestTaxi.setLanguage("JavaSerialization");
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+
 					myAgent.send(requestTaxi);
 
-					System.out.println("=P >> " + getLocalName() + " >> State is: " + "XI" + xiCoord + "YI" + yiCoord + "XF" + xfCoord + "YF" + yfCoord + "NP" + number);
-				}
+					System.out.println("=P >> " + getLocalName() + " >> State is: " + "XI" + xiCoord + "YI" + yiCoord + "XF" + xfCoord + "YF" + yfCoord + "NP" + numberOfPassengers);
+				}else
+					myAgent.addBehaviour(this);
 			}
 		};
 

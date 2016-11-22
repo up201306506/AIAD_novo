@@ -2,34 +2,35 @@ package agents;
 
 import java.util.HashMap;
 
-import application.Passenger;
-import application.Taxi;
-import behaviours.AllocatePassengerBehaviour;
-import gui.StationGUI;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
-import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import jade.lang.acl.UnreadableException;
+import utils.DataSerializable;
 
 public class TaxiStationAgent extends Agent{
 	private static final long serialVersionUID = 488752805219045668L;
 
-	// GUI
-	private final int _gui_refresh_rate = 1; // seconds
-
-	private StationGUI stationGUI;
-	private HashMap<AID, Taxi> taxisTable;
-	private HashMap<AID, Passenger> passengersTable;
+	// Variable holders
+	private HashMap<AID, DataSerializable.TaxiData> taxis;
+	private HashMap<AID, DataSerializable.PassengerData> passengers;
 
 	//---------------------------------------------
 	@Override
 	protected void setup() {
+		// Variables
+		System.out.println("#S >> " + getLocalName() + " >> Just initialized");
+
+		taxis = new HashMap<>();
+		passengers = new HashMap<>();
+
+		// --------------------------------------------
 		// Search for other taxi stations
 		DFAgentDescription stationTemplate = new DFAgentDescription();
 		ServiceDescription stationServiceTemplate = new ServiceDescription();
@@ -46,15 +47,6 @@ public class TaxiStationAgent extends Agent{
 			System.out.println("#S >> " + getLocalName() + " >> Search for another station exception");
 			e.printStackTrace();
 		}
-
-		// --------------------------------------------
-		// Variables
-		taxisTable = new HashMap<>();
-		passengersTable = new HashMap<>();
-
-		// Creates station interface
-		stationGUI = new StationGUI();
-		System.out.println("#S >> " + getLocalName() + " >> Just initialized");
 
 		// --------------------------------------------
 		// Yellow pages -------------------------------
@@ -74,62 +66,57 @@ public class TaxiStationAgent extends Agent{
 			fe.printStackTrace();
 		}
 
-		// --------------------------------------------
 		// Behaviours ---------------------------------
-		// Updates GUI Information
-		TickerBehaviour updateGUIInformationBehaviour = new TickerBehaviour(this, _gui_refresh_rate * 1000) {
-			private static final long serialVersionUID = -3948101162657174560L;
-
-			@Override
-			protected void onTick() {
-				stationGUI.updateTaxis(taxisTable);
-				stationGUI.updatePassengers(passengersTable);
-			}
-		};
-
-		// Receives information about taxi positions
-		CyclicBehaviour receiveTaxiInformationBehaviour = new CyclicBehaviour(this) {
-			private static final long serialVersionUID = -5635429047598092196L;
+		// Receive taxi informations
+		CyclicBehaviour receiveTaxiInformation = new CyclicBehaviour(this) {
+			private static final long serialVersionUID = 3525184234368919653L;
 
 			@Override
 			public void action() {
 				// Defines the message template to receive
-				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
-				ACLMessage msg = myAgent.receive(mt);
-				if(msg != null &&  msg.getConversationId().equals("taxi-position")){
-					// Creates or replaces the taxi information in the HashMap taxisTable
-					taxisTable.put(msg.getSender(), new Taxi(msg.getSender(), msg.getContent()));
+				MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+				ACLMessage informationMessage = myAgent.receive(messageTemplate);
+				if(informationMessage != null &&  informationMessage.getConversationId().equals("taxi-position")){
+					try {
+						if(("JavaSerialization").equals(informationMessage.getLanguage())){
+							DataSerializable.TaxiData taxi = (DataSerializable.TaxiData) informationMessage.getContentObject();
+							taxis.put(taxi.getAID(), taxi);
+						}
+					} catch (UnreadableException e) {
+						e.printStackTrace();
+					}
 				}else{
 					block();
 				}
 			}
 		};
 
-		// Receives request for a taxi from a passenger
-		CyclicBehaviour receivePassengerRequestBehaviour = new CyclicBehaviour(this) {
-			private static final long serialVersionUID = 2641462448146065923L;
+		// Receive request informations
+		CyclicBehaviour receiveRequestsBehaviour = new CyclicBehaviour(this) {
+			private static final long serialVersionUID = -1745263839997857584L;
 
 			@Override
 			public void action() {
 				// Defines the message template to receive
-				MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
-				ACLMessage msg = myAgent.receive(mt);
-				if(msg != null && msg.getConversationId().equals("request-pickup")){
-					// Creates or replaces the taxi information in the HashMap taxisTable
-					Passenger passengerToAllocate = new Passenger(msg.getSender(), msg.getContent());
-					passengersTable.put(msg.getSender(), passengerToAllocate);
-
-					// Process allocation request behaviour
-					addBehaviour(new AllocatePassengerBehaviour(myAgent, passengerToAllocate, false/* TODO indicate sharing policy, false for no sharing */));
+				MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
+				ACLMessage requestMessage = myAgent.receive(messageTemplate);
+				if(requestMessage != null &&  requestMessage.getConversationId().equals("request-pickup")){
+					try {
+						if(("JavaSerialization").equals(requestMessage.getLanguage())){
+							DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) requestMessage.getContentObject();
+							passengers.put(passenger.getAID(), passenger);
+						}
+					} catch (UnreadableException e) {
+						e.printStackTrace();
+					}
 				}else{
 					block();
 				}
 			}
 		};
 
-		addBehaviour(updateGUIInformationBehaviour);
-		addBehaviour(receiveTaxiInformationBehaviour);
-		addBehaviour(receivePassengerRequestBehaviour);
+		addBehaviour(receiveTaxiInformation);
+		addBehaviour(receiveRequestsBehaviour);
 	}
 
 	@Override
@@ -142,78 +129,6 @@ public class TaxiStationAgent extends Agent{
 			e.printStackTrace();
 		}
 
-		// Disposes GUI
-		stationGUI.dispose();
 		System.out.println("#S >> " + getLocalName() + " >> Terminated");
 	}
-
-	//---------------------------------------------
-	// Auxiliary functions
-	/*
-	private Taxi allocatePassenger(Passenger passenger){
-
-		if(offServiceTaxis.size() != 0){
-			return findNearestTaxi(passenger);
-		}
-
-		return null;
-	}
-
-	private Taxi findNearestTaxi(Passenger passenger){
-
-		class DistanceToTaxi implements Comparable<DistanceToTaxi> {
-			private float distance;
-			private Taxi taxi;
-
-			public DistanceToTaxi(float distance, Taxi taxi){
-				this.distance = distance;
-				this.taxi = taxi;
-			}
-
-			public Taxi getTaxi(){
-				return taxi;
-			}
-
-			@Override
-			public boolean equals(Object obj) {
-				if(obj == this) return true;
-
-				if(!(obj instanceof DistanceToTaxi)) return false;
-
-				DistanceToTaxi that = (DistanceToTaxi) obj;
-				if(this.distance == that.distance
-						&& this.taxi.equals(that.taxi)) return true;
-
-				return false;
-			}
-
-			public int compareTo(DistanceToTaxi that) {
-				return Float.valueOf(this.distance).compareTo(that.distance);
-			};
-		}
-
-		PriorityQueue<DistanceToTaxi> priorityQueue = new PriorityQueue<>();
-
-		int xCoordPassenger = passenger.getXiCoord();
-		int yCoordPassenger = passenger.getYiCoord();
-
-		for(Taxi taxi : offServiceTaxis){
-			int xCoordTaxi = taxi.getXCoord();
-			int yCoordTaxi = taxi.getYCoord();
-
-			float distance = DistanceFormula(xCoordPassenger, yCoordPassenger, xCoordTaxi, yCoordTaxi);
-
-			priorityQueue.add(new DistanceToTaxi(distance, taxi));
-		}
-
-		return priorityQueue.peek().getTaxi();
-	}
-
-	//---------------------------------------------
-	// Math functions
-
-	private float DistanceFormula(int x1, int y1, int x2, int y2){
-		return (float) Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-	}
-	 */
 }
