@@ -91,6 +91,8 @@ public class PassengerAgent extends Agent {
 
 					myAgent.send(requestTaxi);
 
+					// TODO start timer, parallel behaviour
+
 					System.out.println("=P >> " + getLocalName() + " >> State is: " + "XI" + xiCoord + "YI" + yiCoord + "XF" + xfCoord + "YF" + yfCoord + "NP" + numberOfPassengers);
 				}else
 					myAgent.addBehaviour(this);

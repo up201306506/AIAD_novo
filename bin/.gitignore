@@ -1,8 +1,8 @@
 /agents/
 /application/
-/behaviours/
-/utils/
-/gui/
+/pathfinding$map_cell.class
+/pathfinding$path_finding_map.class
+/pathfinding.class
 /test/
 /tools/
-/gui/
+/utils/
