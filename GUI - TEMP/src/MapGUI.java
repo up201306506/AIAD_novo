@@ -53,14 +53,17 @@ public class MapGUI extends JFrame {
 
 		loadImages();
 		byte[][] map = loadMap();
+		int[][] times = loadTimes();
 		gbc = new GridBagConstraints();
 		
 		taxisTable = new JTable();
+		taxisTable.setFocusable(false);
 		taxisTableModel = new DefaultTableModel();
 		taxisTableModel.setColumnIdentifiers(taxisTableColumnNames);
 		taxisTable.setModel(taxisTableModel);
 		
 		passengersTable = new JTable();
+		passengersTable.setFocusable(false);
 		passengersTableModel = new DefaultTableModel();
 		passengersTableModel.setColumnIdentifiers(passengersTableColumnNames);
 		passengersTable.setModel(passengersTableModel);
@@ -69,7 +72,7 @@ public class MapGUI extends JFrame {
 		tablesPanel.setLayout(new GridLayout(1, 2));
 		
 		mapPanel = new JPanel();
-		mapPanel.setLayout(new GridLayout(map.length, map[0].length));
+		mapPanel.setLayout(new GridLayout(map.length, 0));
 		
 		displayMap(map);
 		
@@ -121,6 +124,33 @@ public class MapGUI extends JFrame {
 		}
 
 		return map;
+	}
+	
+	private int[][] loadTimes() {
+		int[][] times = null;
+		
+		try {
+			BufferedReader reader = new BufferedReader(new FileReader("resources/times.txt"));
+
+			String firstLine = reader.readLine();
+			String sizes[] = firstLine.split(":");
+			times = new int[Integer.parseInt(sizes[0])][Integer.parseInt(sizes[1])];
+
+			int j = 0;
+			String line = null;
+			while ((line = reader.readLine()) != null) {
+				String[] values = line.split(",");
+				for (int i = 0; i < values.length; i++)
+					times[j][i] = Integer.parseInt(values[i]);
+				j++;
+			}
+
+			reader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return times;
 	}
 	
 	private void loadImages() {
