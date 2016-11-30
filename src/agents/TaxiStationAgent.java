@@ -106,6 +106,8 @@ public class TaxiStationAgent extends Agent{
 							DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) requestMessage.getContentObject();
 							passengers.put(passenger.getAID(), passenger);
 
+							System.out.println(passengers.get(passenger.getAID()).toString());
+
 							// TODO process request from passenger
 						}
 					} catch (UnreadableException e) {
