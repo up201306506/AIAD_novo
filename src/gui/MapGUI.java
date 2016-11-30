@@ -7,6 +7,7 @@ import java.awt.Toolkit;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashMap;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -16,6 +17,9 @@ import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+
+import jade.core.AID;
+import utils.DataSerializable;
 
 public class MapGUI extends JFrame {
 
@@ -46,10 +50,6 @@ public class MapGUI extends JFrame {
 	private ImageIcon passengerImage;
 	private ImageIcon passengersImage;
 
-	public static void main(String[] args) {
-		new MapGUI();
-	}
-
 	public MapGUI() {
 		super("Map");
 
@@ -63,6 +63,10 @@ public class MapGUI extends JFrame {
 		taxisTableModel = new DefaultTableModel();
 		taxisTableModel.setColumnIdentifiers(taxisTableColumnNames);
 		taxisTable.setModel(taxisTableModel);
+		
+		String[] row = { "0", "0", "0", "0" };
+		for (int i = 0; i < 45; i++)
+			taxisTableModel.addRow(row);
 		
 		passengersTable = new JTable();
 		passengersTable.setFocusable(false);
@@ -199,6 +203,14 @@ public class MapGUI extends JFrame {
 				}
 			}
 		}
+	}
+	
+	public void updateTaxisTable(HashMap<AID, DataSerializable.TaxiData> taxis) {
+		
+	}
+	
+	public void updatePassengersTable(HashMap<AID, DataSerializable.PassengerData> taxis) {
+		
 	}
 	
 	public void updateMap(byte[][] map) {
