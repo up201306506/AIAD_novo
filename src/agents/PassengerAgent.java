@@ -22,6 +22,8 @@ public class PassengerAgent extends Agent {
 	private int yfCoord;
 	private int numberOfPassengers;
 
+	private AID stationAID;
+
 	protected void setup() {
 		// Read from arguments
 		xiCoord = 5; // Temporary values
@@ -41,7 +43,31 @@ public class PassengerAgent extends Agent {
 		try {
 			DFService.register(this, dfd);
 		} catch (FIPAException fe) {
-			System.out.println("=P >> " + getLocalName() + " >> DFService register exception");
+			fe.printStackTrace();
+		}
+
+		// --------------------------------------------
+		// Search for taxi station --------------------
+		// Prepare search for the taxi station
+		DFAgentDescription dfAgentDescription = new DFAgentDescription();
+		ServiceDescription serviceDescription = new ServiceDescription();
+		serviceDescription.setType("station");
+		dfAgentDescription.addServices(serviceDescription);
+
+		try {
+			DFAgentDescription[] searchResult = DFService.search(this, dfAgentDescription);
+
+			if(searchResult.length == 0){
+				// No stations found
+				System.out.println("=P >> " + getLocalName() + " >> Could not find a station");
+				takeDown();
+			}
+
+			// Station found
+			stationAID = searchResult[0].getName();
+			System.out.println("=P >> " + getLocalName() + " >> Found station >> " + stationAID.getLocalName());
+
+		} catch (FIPAException fe) {
 			fe.printStackTrace();
 		}
 
@@ -53,49 +79,24 @@ public class PassengerAgent extends Agent {
 
 			@Override
 			public void action() {
-				// Prepare search for the taxi station
-				DFAgentDescription dfAgentDescription = new DFAgentDescription();
-				ServiceDescription serviceDescription = new ServiceDescription();
-				serviceDescription.setType("station");
-				dfAgentDescription.addServices(serviceDescription);
-
-				// Search for the taxi station
-				AID stationAID = null;
+				// Request pick up from taxi
+				ACLMessage requestTaxi = new ACLMessage(ACLMessage.REQUEST);
+				requestTaxi.addReceiver(stationAID);
+				requestTaxi.setConversationId("request-pickup");
 				try {
-					DFAgentDescription[] searchResult = DFService.search(myAgent, dfAgentDescription);
-
-					if(searchResult.length != 0){
-						// Station found
-						stationAID = searchResult[0].getName();
-						System.out.println("=P >> " + getLocalName() + " >> Found station >> " + stationAID.getName());
-					}else{
-						// No stations found
-						System.out.println("=P >> " + getLocalName() + " >> Could not find a station");
-					}
-				} catch (FIPAException fe) {
-					fe.printStackTrace();
+					requestTaxi.setContentObject(new DataSerializable.PassengerData(myAgent.getAID(),
+							xiCoord, yiCoord, xfCoord, yfCoord, numberOfPassengers));
+					requestTaxi.setLanguage("JavaSerialization");
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
 
-				if(stationAID != null){
-					// Request pick up from taxi
-					ACLMessage requestTaxi = new ACLMessage(ACLMessage.REQUEST);
-					requestTaxi.addReceiver(stationAID);
-					requestTaxi.setConversationId("request-pickup");
-					try {
-						requestTaxi.setContentObject(new DataSerializable.PassengerData(myAgent.getAID(),
-								xiCoord, yiCoord, xfCoord, yfCoord, numberOfPassengers));
-						requestTaxi.setLanguage("JavaSerialization");
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
+				myAgent.send(requestTaxi);
 
-					myAgent.send(requestTaxi);
+				// TODO start timer, parallel behaviour
 
-					// TODO start timer, parallel behaviour
-
-					System.out.println("=P >> " + getLocalName() + " >> State is: " + "XI" + xiCoord + "YI" + yiCoord + "XF" + xfCoord + "YF" + yfCoord + "NP" + numberOfPassengers);
-				}else
-					myAgent.addBehaviour(this);
+				System.out.println("=P >> " + getLocalName() + " >> State is: " + "Xi - " + xiCoord + " | Yi - " + yiCoord
+						+ " | Xf - " + xfCoord + " | Yf - " + yfCoord + " | N - " + numberOfPassengers);
 			}
 		};
 
