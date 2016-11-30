@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map.Entry;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -20,6 +21,8 @@ import javax.swing.table.DefaultTableModel;
 
 import jade.core.AID;
 import utils.DataSerializable;
+import utils.DataSerializable.PassengerData;
+import utils.DataSerializable.TaxiData;
 
 public class MapGUI extends JFrame {
 
@@ -63,10 +66,6 @@ public class MapGUI extends JFrame {
 		taxisTableModel = new DefaultTableModel();
 		taxisTableModel.setColumnIdentifiers(taxisTableColumnNames);
 		taxisTable.setModel(taxisTableModel);
-		
-		String[] row = { "0", "0", "0", "0" };
-		for (int i = 0; i < 45; i++)
-			taxisTableModel.addRow(row);
 		
 		passengersTable = new JTable();
 		passengersTable.setFocusable(false);
@@ -206,11 +205,29 @@ public class MapGUI extends JFrame {
 	}
 	
 	public void updateTaxisTable(HashMap<AID, DataSerializable.TaxiData> taxis) {
+		for (int i = 0; i < taxisTableModel.getRowCount(); i++)
+			taxisTableModel.removeRow(i);
 		
+		for (Entry<AID, TaxiData> taxi: taxis.entrySet()) {
+			taxisTableModel.addRow(new String[] { "" + taxi.getValue().getAID(),
+												  "" + taxi.getValue().getXCoord(),
+												  "" + taxi.getValue().getYCoord(),
+												  "" + taxi.getValue().getCapacity() });
+		}
 	}
 	
-	public void updatePassengersTable(HashMap<AID, DataSerializable.PassengerData> taxis) {
+	public void updatePassengersTable(HashMap<AID, DataSerializable.PassengerData> passengers) {
+		for (int i = 0; i < passengersTableModel.getRowCount(); i++)
+			passengersTableModel.removeRow(i);
 		
+		for (Entry<AID, PassengerData> passenger: passengers.entrySet()) {
+			passengersTableModel.addRow(new String[] { "" + passenger.getValue().getAID(),
+													   "" + passenger.getValue().getXiCoord(),
+													   "" + passenger.getValue().getYiCoord(),
+													   "" + passenger.getValue().getXfCoord(),
+													   "" + passenger.getValue().getYfCoord(),
+													   "" + passenger.getValue().getNumberOfPassenger() });
+		}
 	}
 	
 	public void updateMap(byte[][] map) {

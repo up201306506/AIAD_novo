@@ -2,6 +2,7 @@ package agents;
 
 import java.util.HashMap;
 
+import gui.MapGUI;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
@@ -29,6 +30,7 @@ public class TaxiStationAgent extends Agent{
 
 		taxis = new HashMap<>();
 		passengers = new HashMap<>();
+		MapGUI gui = new MapGUI();
 
 		// --------------------------------------------
 		// Search for other taxi stations
