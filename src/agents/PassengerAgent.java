@@ -26,7 +26,7 @@ public class PassengerAgent extends Agent {
 	protected void setup() {
 		// Read from arguments
 		// Temporary values TODO ler dos argumentos
-		int rowI = 0, colI = 10, rowF = 0, colF = 0;
+		int rowI = 0, colI = 0, rowF = 0, colF = 3;
 		numberOfPassengers = 3;
 
 		startingCell = new Cell(rowI, colI, 0, false);

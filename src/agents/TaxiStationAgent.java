@@ -9,6 +9,7 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.WakerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -136,6 +137,7 @@ public class TaxiStationAgent extends Agent{
 		private static final String RECEIVE_ANSWER = "RECEIVE_ANSWER";
 		private static final String ORDER_PICKUP = "ORDER_PICKUP";
 		private static final String RECEIVE_CONFIRMATION = "RECEIVE_CONFIRMATION";
+		private static final String SLEEP = "SLEEP";
 		private static final String DONE_PROCESS_REQUEST = "DONE_PROCESS_REQUEST";
 
 		// Variables
@@ -208,6 +210,13 @@ public class TaxiStationAgent extends Agent{
 				DFAgentDescription[] searchResult = null;
 				try {
 					searchResult = DFService.search(myAgent, dfAgentDescription);
+
+					// If there are no taxis sleeps
+					if(searchResult.length == 0){
+						state = SLEEP;
+						break;
+					}
+
 					numberOfTaxisMessaged = searchResult.length;
 				} catch (FIPAException fe) {
 					fe.printStackTrace();
@@ -260,8 +269,10 @@ public class TaxiStationAgent extends Agent{
 				break;
 			case ORDER_PICKUP:
 				// If there is not any valid taxi to order the passenger's pickup
-				if(taxiScore.isEmpty())
-					state = PROCESS_REQUEST; // TODO intervalt between time in ms
+				if(taxiScore.isEmpty()) state = SLEEP;
+
+				// Prepare request data
+				passengerData.setRequestBooleans(isSharingPolicy, isDiminishingDuration);
 
 				AID taxiToOrder = taxiScore.remove().getTaxiAID();
 
@@ -289,7 +300,37 @@ public class TaxiStationAgent extends Agent{
 				state = RECEIVE_CONFIRMATION;
 				break;
 			case RECEIVE_CONFIRMATION:
-				// TODO
+				ACLMessage orderAnswer = myAgent.receive(messageTemplate);
+				if(orderAnswer != null && orderAnswer.getConversationId().equals("order-pickup")){
+					if(orderAnswer.getPerformative() == ACLMessage.CONFIRM){ // If order was confirmed
+						if(orderAnswer.getContent().equals("accept-order"))
+							state = DONE_PROCESS_REQUEST;
+						else
+							System.out.println("#S >> " + getLocalName() + " >> Received unexpected message");
+					}else if(orderAnswer.getPerformative() == ACLMessage.DISCONFIRM){ // If order was disconfirmed
+						if(orderAnswer.getContent().equals("refuse-order"))
+							state = ORDER_PICKUP;
+						else
+							System.out.println("#S >> " + getLocalName() + " >> Received unexpected message");
+					}else
+						System.out.println("#S >> " + getLocalName() + " >> Received unexpected message");
+				}else{
+					block();
+				}
+				break;
+			case SLEEP:
+				// Resets this behaviour after 30 seconds
+				myAgent.addBehaviour(new WakerBehaviour(myAgent, 30000) {
+					private static final long serialVersionUID = -3004190994251093897L;
+
+					@Override
+					protected void handleElapsedTimeout() {
+						myAgent.addBehaviour(new PassengerRequestBehaviour(myAgent, passengerData));
+					}
+				});
+
+				// Terminates this instance
+				state = DONE_PROCESS_REQUEST;
 				break;
 			default:
 				break;

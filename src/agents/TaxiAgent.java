@@ -34,14 +34,30 @@ public class TaxiAgent extends Agent {
 	protected void setup(){
 		// Read from arguments
 		// Temporary values TODO ler dos argumentos
-		int row = 0, col = 0;
+		int row = 0, col = 2;
 		maxCapacity = 4;
 		capacity = maxCapacity;
 
 		positionCell = new Cell(row, col, 0, false);
 
-		map = null;
-		durationMap = null;
+		// TODO map
+		byte[][] tempMap = {
+				{1, 0, 0, 0},
+				{1, 1, 1, 0},
+				{1, 0, 1, 0},
+				{1, 1, 1, 0}
+		};
+
+		int[][] tempDurationMap = {
+				{10, 0, 0, 0},
+				{10, 10, 10, 0},
+				{9999, 0, 10, 0},
+				{10, 10, 10, 0}
+		};
+
+		map = tempMap;
+		durationMap = tempDurationMap;
+
 		cellMap = Cell.mapToCellMap(map, durationMap);
 
 		// Create taxi agent
@@ -69,7 +85,7 @@ public class TaxiAgent extends Agent {
 
 			// Station found
 			stationAID = searchResult[0].getName();
-			System.out.println("-T >> " + getLocalName() + " >> Found station >> " + stationAID.getName());
+			System.out.println("-T >> " + getLocalName() + " >> Found station >> " + stationAID.getLocalName());
 
 		} catch (FIPAException fe) {
 			fe.printStackTrace();
@@ -123,7 +139,55 @@ public class TaxiAgent extends Agent {
 			}
 		};
 
+		CyclicBehaviour receivePickupOrderBehaviour = new CyclicBehaviour(this) {
+			private static final long serialVersionUID = 5168158393908888099L;
+
+			@Override
+			public void action() {
+				// Defines the message template to receive
+				MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+				ACLMessage orderMessage = myAgent.receive(messageTemplate);
+				if(orderMessage != null &&  orderMessage.getConversationId().equals("order-pickup")){
+
+					try {
+						if(("JavaSerialization").equals(orderMessage.getLanguage())){
+							DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) orderMessage.getContentObject();
+
+							// Re-verifies order
+							if(!passenger.isSharingPolicy()){ // Station has no sharing policy
+								// Taxi is already taken by another passenger
+								if(capacity != maxCapacity){
+									// Refuses order
+									ACLMessage refuseOrder = orderMessage.createReply();
+									refuseOrder.setPerformative(ACLMessage.DISCONFIRM);
+									refuseOrder.setContent("refuse-order");
+									myAgent.send(refuseOrder);
+								}
+
+								// Accepts order
+								ACLMessage acceptsOrder = orderMessage.createReply();
+								acceptsOrder.setPerformative(ACLMessage.CONFIRM);
+								acceptsOrder.setContent("accept-order");
+								myAgent.send(acceptsOrder);
+
+								// TODO executa a ordem
+								// guarda destinos, calcula caminhos, etc ect
+
+							}else{ // Station has sharing policy
+								// TODO
+							}
+						}
+					} catch (UnreadableException e) {
+						e.printStackTrace();
+					}
+				}else{
+					block();
+				}
+			}
+		};
+
 		addBehaviour(receivePickupProposesBehaviour);
+		addBehaviour(receivePickupOrderBehaviour);
 	}
 
 	@Override
@@ -176,6 +240,8 @@ public class TaxiAgent extends Agent {
 									positionCell, passengerData.getStartingCell(),
 									false) // While picking up a passenger, always travel the shortest path
 							).size();
+
+					state = ACCEPT_PROPOSE;
 				}else{ // Station has sharing policy
 					// TODO
 				}
