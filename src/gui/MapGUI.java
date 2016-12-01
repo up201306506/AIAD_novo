@@ -31,18 +31,18 @@ public class MapGUI extends JFrame {
 	// Main Panel
 	private JTabbedPane tabbedPanel;
 	private final byte CELL_SIZE = 15;
-	
+
 	// Tables View
 	private JPanel tablesPanel;
 	private JTable taxisTable, passengersTable;
 	private DefaultTableModel taxisTableModel, passengersTableModel;
 	private String[] taxisTableColumnNames = { "Name", "X", "Y", "Cap" };
 	private String[] passengersTableColumnNames = { "Name", "Xi", "Yi", "Xf", "Yf", "Num" };
-	
+
 	// Map View
 	private JPanel mapPanel;
 	private GridBagConstraints gbc;
-	
+
 	// Images
 	private ImageIcon taxiImage;
 	private ImageIcon taxisImage;
@@ -60,33 +60,33 @@ public class MapGUI extends JFrame {
 		byte[][] map = loadMap();
 		int[][] times = loadTimes();
 		gbc = new GridBagConstraints();
-		
+
 		taxisTable = new JTable();
 		taxisTable.setFocusable(false);
 		taxisTableModel = new DefaultTableModel();
 		taxisTableModel.setColumnIdentifiers(taxisTableColumnNames);
 		taxisTable.setModel(taxisTableModel);
-		
+
 		passengersTable = new JTable();
 		passengersTable.setFocusable(false);
 		passengersTableModel = new DefaultTableModel();
 		passengersTableModel.setColumnIdentifiers(passengersTableColumnNames);
 		passengersTable.setModel(passengersTableModel);
-		
+
 		tablesPanel = new JPanel();
 		tablesPanel.setLayout(new GridLayout(1, 2));
-		
+
 		mapPanel = new JPanel();
 		mapPanel.setLayout(new GridLayout(map.length, 0));
-		
+
 		displayMap(map);
-		
+
 		JScrollPane panel1 = new JScrollPane(taxisTable);
 		JScrollPane panel2 = new JScrollPane(passengersTable);
-		
+
 		tablesPanel.add(panel1);
 		tablesPanel.add(panel2);
-		
+
 		tabbedPanel = new JTabbedPane();
 		tabbedPanel.addTab("Tables View", tablesPanel);
 		tabbedPanel.addTab("Map View", mapPanel);
@@ -100,7 +100,7 @@ public class MapGUI extends JFrame {
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		int centerX = (int) screenSize.getWidth() / 2;
 		int centerY = (int) screenSize.getHeight() / 2;
-		
+
 		setLocation(centerX - getWidth() / 2, centerY - getHeight() / 2);
 		setVisible(true);
 	}
@@ -130,10 +130,10 @@ public class MapGUI extends JFrame {
 
 		return map;
 	}
-	
+
 	private int[][] loadTimes() {
 		int[][] times = null;
-		
+
 		try {
 			BufferedReader reader = new BufferedReader(new FileReader("resources/times.txt"));
 
@@ -154,10 +154,10 @@ public class MapGUI extends JFrame {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		return times;
 	}
-	
+
 	private void loadImages() {
 		taxiImage = new ImageIcon("resources/images/taxi.png");
 		taxisImage = new ImageIcon("resources/images/taxis.png");
@@ -203,11 +203,11 @@ public class MapGUI extends JFrame {
 			}
 		}
 	}
-	
+
 	public void updateTaxisTable(HashMap<AID, DataSerializable.TaxiData> taxis) {
 		for (int i = 0; i < taxisTableModel.getRowCount(); i++)
 			taxisTableModel.removeRow(i);
-		
+
 		for (Entry<AID, TaxiData> taxi: taxis.entrySet()) {
 			taxisTableModel.addRow(new String[] { "" + taxi.getValue().getAID(),
 												  "" + taxi.getValue().getXCoord(),
@@ -215,21 +215,21 @@ public class MapGUI extends JFrame {
 												  "" + taxi.getValue().getCapacity() });
 		}
 	}
-	
+
 	public void updatePassengersTable(HashMap<AID, DataSerializable.PassengerData> passengers) {
 		for (int i = 0; i < passengersTableModel.getRowCount(); i++)
 			passengersTableModel.removeRow(i);
-		
+
 		for (Entry<AID, PassengerData> passenger: passengers.entrySet()) {
 			passengersTableModel.addRow(new String[] { "" + passenger.getValue().getAID(),
-													   "" + passenger.getValue().getXiCoord(),
-													   "" + passenger.getValue().getYiCoord(),
-													   "" + passenger.getValue().getXfCoord(),
-													   "" + passenger.getValue().getYfCoord(),
+													   "" + passenger.getValue().getStartingCell().getRow(),
+													   "" + passenger.getValue().getStartingCell().getCol(),
+													   "" + passenger.getValue().getEndingCell().getRow(),
+													   "" + passenger.getValue().getEndingCell().getCol(),
 													   "" + passenger.getValue().getNumberOfPassenger() });
 		}
 	}
-	
+
 	public void updateMap(byte[][] map) {
 		displayMap(map);
 		mapPanel.repaint();

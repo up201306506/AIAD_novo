@@ -1,6 +1,6 @@
 package agents;
 
-import java.io.IOException;
+import java.util.HashMap;
 
 import jade.core.AID;
 import jade.core.Agent;
@@ -13,29 +13,67 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
+import utils.AStar;
+import utils.Cell;
 import utils.DataSerializable;
-import utils.DataSerializable.PassengerData;
 
 public class TaxiAgent extends Agent {
 	private static final long serialVersionUID = 163911234618964268L;
 
 	// Taxi dynamic variables
-	private int xCoord;
-	private int yCoord;
+	private Cell positionCell;
 	private int capacity;
 	private int maxCapacity;
 
 	private AID stationAID;
 
+	private byte[][] map;
+	private int[][] durationMap;
+	private HashMap<Cell, Cell> cellMap;
+
 	protected void setup(){
 		// Read from arguments
-		xCoord = 1; // Temporary values
-		yCoord = 1;
+		// Temporary values TODO ler dos argumentos
+		int row = 0, col = 0;
 		maxCapacity = 4;
 		capacity = maxCapacity;
 
+		positionCell = new Cell(row, col, 0, false);
+
+		map = null;
+		durationMap = null;
+		cellMap = Cell.mapToCellMap(map, durationMap);
+
 		// Create taxi agent
 		System.out.println("-T >> " + getLocalName() + " >> Just initialized");
+
+		// --------------------------------------------
+		// Search for taxi station --------------------
+		// Prepare search for the taxi station
+		DFAgentDescription dfAgentDescription = new DFAgentDescription();
+		ServiceDescription serviceDescription = new ServiceDescription();
+		serviceDescription.setType("station");
+		dfAgentDescription.addServices(serviceDescription);
+
+		try {
+			DFAgentDescription[] searchResult = null;
+
+			do{
+				// Tries to find a station every 30 seconds
+				if(searchResult != null)
+					blockingReceive(30000);
+
+				searchResult = DFService.search(this, dfAgentDescription);
+				System.out.println("-T >> " + getLocalName() + " >> Could not find a station");
+			}while(searchResult.length == 0);
+
+			// Station found
+			stationAID = searchResult[0].getName();
+			System.out.println("-T >> " + getLocalName() + " >> Found station >> " + stationAID.getName());
+
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
 
 		// --------------------------------------------
 		// Yellow pages -------------------------------
@@ -58,31 +96,6 @@ public class TaxiAgent extends Agent {
 		}
 
 		// --------------------------------------------
-		// Search for taxi station --------------------
-		// Prepare search for the taxi station
-		DFAgentDescription dfAgentDescription = new DFAgentDescription();
-		ServiceDescription serviceDescription = new ServiceDescription();
-		serviceDescription.setType("station");
-		dfAgentDescription.addServices(serviceDescription);
-
-		try {
-			DFAgentDescription[] searchResult = DFService.search(this, dfAgentDescription);
-
-			if(searchResult.length == 0){
-				// No stations found
-				System.out.println("-T >> " + getLocalName() + " >> Could not find a station");
-				takeDown();
-			}
-
-			// Station found
-			stationAID = searchResult[0].getName();
-			System.out.println("-T >> " + getLocalName() + " >> Found station >> " + stationAID.getName());
-
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
-
-		// --------------------------------------------
 		// Behaviours ---------------------------------
 		// Receive pick up proposes
 		CyclicBehaviour receivePickupProposesBehaviour = new CyclicBehaviour(this) {
@@ -99,7 +112,7 @@ public class TaxiAgent extends Agent {
 						if(("JavaSerialization").equals(proposeMessage.getLanguage())){
 							DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) proposeMessage.getContentObject();
 
-							addBehaviour(new StationProposesBehaviour(myAgent, passenger));
+							addBehaviour(new StationProposesBehaviour(myAgent, proposeMessage, passenger));
 						}
 					} catch (UnreadableException e) {
 						e.printStackTrace();
@@ -127,17 +140,20 @@ public class TaxiAgent extends Agent {
 		// Behaviour states
 		private String state;
 		private static final String PROCESS_PROPOSE = "PROCESS_PROPOSE";
-		private static final String ANSWER_PROPOSE = "ANSWER_PROPOSE";
+		private static final String ACCEPT_PROPOSE = "ACCEPT_PROPOSE";
 		private static final String REFUSE_PROPOSE = "REFUSE_PROPOSE";
 		private static final String DONE_PROCESS_PROPOSE = "DONE_PROCESS_PROPOSE";
 
 		// Variables
+		private ACLMessage proposeMessage;
 		private DataSerializable.PassengerData passengerData;
+		private int score;
 
 		// Constructor
-		public StationProposesBehaviour(Agent myAgent, DataSerializable.PassengerData passengerData){
+		public StationProposesBehaviour(Agent myAgent, ACLMessage proposeMessage, DataSerializable.PassengerData passengerData){
 			super(myAgent);
 
+			this.proposeMessage = proposeMessage;
 			this.passengerData = passengerData;
 
 			state = PROCESS_PROPOSE;
@@ -149,13 +165,38 @@ public class TaxiAgent extends Agent {
 			case PROCESS_PROPOSE:
 				if(!passengerData.isSharingPolicy()){ // Station has no sharing policy
 					// Taxi is already taken by another passenger
-					if(capacity != maxCapacity)
+					if(capacity != maxCapacity){
 						state = REFUSE_PROPOSE;
+						break;
+					}
 
-
+					// Retrieves the length of the shortest path to passenger
+					score = (
+							AStar.AStarAlgorithm(cellMap,
+									positionCell, passengerData.getStartingCell(),
+									false) // While picking up a passenger, always travel the shortest path
+							).size();
 				}else{ // Station has sharing policy
-
+					// TODO
 				}
+				break;
+			case ACCEPT_PROPOSE:
+				ACLMessage acceptProposal = proposeMessage.createReply();
+				acceptProposal.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+				acceptProposal.setContent("" + score);
+				myAgent.send(acceptProposal);
+
+				state = DONE_PROCESS_PROPOSE;
+				break;
+			case REFUSE_PROPOSE:
+				ACLMessage refuseProposal = proposeMessage.createReply();
+				refuseProposal.setPerformative(ACLMessage.REJECT_PROPOSAL);
+				refuseProposal.setContent("refuse-pickup");
+				myAgent.send(refuseProposal);
+
+				state = DONE_PROCESS_PROPOSE;
+				break;
+			default:
 				break;
 			}
 		}

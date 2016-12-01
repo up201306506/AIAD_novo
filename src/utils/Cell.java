@@ -1,12 +1,11 @@
 package utils;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
 
-public class Cell {
+public class Cell implements Serializable {
+	private static final long serialVersionUID = -2826796187927123789L;
 
 	// Variables
 	private int row;
@@ -37,6 +36,12 @@ public class Cell {
 
 	public boolean isWall(){
 		return isWall;
+	}
+
+	// Overrides
+	@Override
+	public String toString() {
+		return (row + " - " + col);
 	}
 
 	@Override

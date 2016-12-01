@@ -10,26 +10,21 @@ public class DataSerializable {
 	public static class PassengerData implements Serializable {
 		private static final long serialVersionUID = 6136110741124038826L;
 
-		// Passenger dynamic variables
+		// Variables
 		private AID passengerAID;
-		private int xiCoord;
-		private int yiCoord;
-		private int xfCoord;
-		private int yfCoord;
+		private Cell startingCell;
+		private Cell endingCell;
 		private int numberOfPassengers;
 
-		// Request taxis variables
+		// Station process conditions
 		private boolean isSharingPolicy;
 		private boolean isDiminishingDuration;
-		private boolean isDiminishingDistance;
 
 		// Constructor
-		public PassengerData(AID passengerAID, int xiCoord, int yiCoord, int xfCoord, int yfCoord, int numberOfPassengers){
+		public PassengerData(AID passengerAID, Cell startingCell, Cell endingCell, int numberOfPassengers){
 			this.passengerAID = passengerAID;
-			this.xiCoord = xiCoord;
-			this.yiCoord = yiCoord;
-			this.xfCoord = xfCoord;
-			this.yfCoord = yfCoord;
+			this.startingCell = startingCell;
+			this.endingCell = endingCell;
 			this.numberOfPassengers = numberOfPassengers;
 		}
 
@@ -38,20 +33,12 @@ public class DataSerializable {
 			return passengerAID;
 		}
 
-		public int getXiCoord(){
-			return xiCoord;
+		public Cell getStartingCell(){
+			return startingCell;
 		}
 
-		public int getYiCoord(){
-			return yiCoord;
-		}
-
-		public int getXfCoord(){
-			return xfCoord;
-		}
-
-		public int getYfCoord(){
-			return yfCoord;
+		public Cell getEndingCell(){
+			return endingCell;
 		}
 
 		public int getNumberOfPassenger() {
@@ -66,22 +53,9 @@ public class DataSerializable {
 			return isDiminishingDuration;
 		}
 
-		public boolean isDiminishingDistance(){
-			return isDiminishingDistance;
-		}
-
-		public void setRequestBooleans(boolean isSharingPolicy, boolean isDiminishingDuration, boolean isDiminishingDistance){
+		public void setRequestBooleans(boolean isSharingPolicy, boolean isDiminishingDuration){
 			this.isSharingPolicy = isSharingPolicy;
 			this.isDiminishingDuration = isDiminishingDuration;
-			this.isDiminishingDistance = isDiminishingDistance;
-		}
-
-		// Aux functions
-		@Override
-		public String toString() {
-			return passengerAID.getLocalName() + " >> State is: " + "Xi - " + xiCoord + "| Yi - " + yiCoord
-					+ "Xf - " + xfCoord + "| Yf - " + yfCoord
-					+ "| N - " + numberOfPassengers;
 		}
 	}
 

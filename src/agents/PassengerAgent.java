@@ -10,41 +10,30 @@ import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
+import utils.Cell;
 import utils.DataSerializable;
 
 public class PassengerAgent extends Agent {
 	private static final long serialVersionUID = 8180459495842676730L;
 
 	// Passenger dynamic variables
-	private int xiCoord;
-	private int yiCoord;
-	private int xfCoord;
-	private int yfCoord;
+	private Cell startingCell;
+	private Cell endingCell;
 	private int numberOfPassengers;
 
 	private AID stationAID;
 
 	protected void setup() {
 		// Read from arguments
-		xiCoord = 5; // Temporary values
-		yiCoord = 5;
-		xfCoord = 10;
-		yfCoord = 10;
+		// Temporary values TODO ler dos argumentos
+		int rowI = 0, colI = 10, rowF = 0, colF = 0;
 		numberOfPassengers = 3;
+
+		startingCell = new Cell(rowI, colI, 0, false);
+		endingCell = new Cell(rowF, colF, 0, false);
 
 		// Create passenger agent
 		System.out.println("=P >> " + getLocalName() + " >> Just initialized");
-
-		// --------------------------------------------
-		// Yellow pages -------------------------------
-		DFAgentDescription dfd = new DFAgentDescription();
-		dfd.setName(getAID());
-
-		try {
-			DFService.register(this, dfd);
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
 
 		// --------------------------------------------
 		// Search for taxi station --------------------
@@ -55,18 +44,32 @@ public class PassengerAgent extends Agent {
 		dfAgentDescription.addServices(serviceDescription);
 
 		try {
-			DFAgentDescription[] searchResult = DFService.search(this, dfAgentDescription);
+			DFAgentDescription[] searchResult = null;
 
-			if(searchResult.length == 0){
-				// No stations found
+			do{
+				// Tries to find a station every 30 seconds
+				if(searchResult != null)
+					blockingReceive(30000);
+
+				searchResult = DFService.search(this, dfAgentDescription);
 				System.out.println("=P >> " + getLocalName() + " >> Could not find a station");
-				takeDown();
-			}
+			}while(searchResult.length == 0);
 
 			// Station found
 			stationAID = searchResult[0].getName();
 			System.out.println("=P >> " + getLocalName() + " >> Found station >> " + stationAID.getLocalName());
 
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+
+		// --------------------------------------------
+		// Yellow pages -------------------------------
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+
+		try {
+			DFService.register(this, dfd);
 		} catch (FIPAException fe) {
 			fe.printStackTrace();
 		}
@@ -84,8 +87,12 @@ public class PassengerAgent extends Agent {
 				requestTaxi.addReceiver(stationAID);
 				requestTaxi.setConversationId("request-pickup");
 				try {
-					requestTaxi.setContentObject(new DataSerializable.PassengerData(myAgent.getAID(),
-							xiCoord, yiCoord, xfCoord, yfCoord, numberOfPassengers));
+					requestTaxi.setContentObject(
+							new DataSerializable.PassengerData(myAgent.getAID(),
+									startingCell,
+									endingCell,
+									numberOfPassengers)
+							);
 					requestTaxi.setLanguage("JavaSerialization");
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -95,8 +102,9 @@ public class PassengerAgent extends Agent {
 
 				// TODO start timer, parallel behaviour
 
-				System.out.println("=P >> " + getLocalName() + " >> State is: " + "Xi - " + xiCoord + " | Yi - " + yiCoord
-						+ " | Xf - " + xfCoord + " | Yf - " + yfCoord + " | N - " + numberOfPassengers);
+				System.out.println("=P >> " + getLocalName() + " >> State is: I: "
+						+ startingCell.toString() + " | F: " + endingCell.toString()
+						+ " | N - " + numberOfPassengers);
 			}
 		};
 
