@@ -38,6 +38,27 @@ public class Cell implements Serializable {
 		return isWall;
 	}
 
+	// Functions
+	public boolean isAdjacent(Cell that){
+		if(this.row == that.row - 1
+				&& this.col == that.col)
+			return true;
+
+		if(this.row == that.row
+				&& this.col == that.col + 1)
+			return true;
+
+		if(this.row == that.row + 1
+				&& this.col == that.col)
+			return true;
+
+		if(this.row == that.row
+				&& this.col == that.col - 1)
+			return true;
+
+		return false;
+	}
+
 	// Overrides
 	@Override
 	public String toString() {

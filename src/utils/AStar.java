@@ -10,6 +10,7 @@ import utils.Cell.CellValue;
 public class AStar {
 
 	// Static functions
+	// Calculates the cost from the origin cell to a cell
 	private static int CalculateCost(CellValue current, Cell next, boolean isDiminishingDuration){
 		int cost;
 		if(isDiminishingDuration)
@@ -20,6 +21,7 @@ public class AStar {
 		return cost;
 	}
 
+	// Calculates an estimate from a cell to the objective cell
 	private static int CalculateEstimateCost(Cell next, Cell endingCell, boolean isDiminishingDuration){
 		int euclideanDistance = (int)
 				Math.round(
@@ -37,6 +39,7 @@ public class AStar {
 		return estimateCost;
 	}
 
+	// Returns path in a list of cells
 	private static LinkedList<Cell> RetrievePath(Cell startingCell, Cell endingCell, HashMap<Cell, Cell> cameFrom){
 		// Temporary use of stack to reverse hashmap
 		Stack<Cell> stack = new Stack<>();
@@ -64,6 +67,7 @@ public class AStar {
 		return path;
 	}
 
+	// Executes AStar algorithm
 	public static LinkedList<Cell> AStarAlgorithm(HashMap<Cell, Cell> cellMap, Cell startingCell, Cell endingCell, boolean isDiminishingDuration){
 
 		// Set of cells to be evaluated
@@ -119,5 +123,30 @@ public class AStar {
 
 		// If no path was found
 		return null;
+	}
+
+	// Calculates the distance of the path
+	public static int PathDistance(LinkedList<Cell> path){
+		return path.size();
+	}
+
+	// Calculates the duration of the path
+	public static int PathDuration(LinkedList<Cell> path){
+		int duration = 0;
+
+		for(int i = 0; i < path.size() - 1; i++)
+			duration += path.get(i).getDuration();
+
+		return duration;
+	}
+
+	// Retrieves stack of moving orders
+	public static Stack<Cell> GetMoveOrders(LinkedList<Cell> path){
+		Stack<Cell> moveOrders = new Stack<>();
+
+		for(int i = path.size() - 1; i > 0; i--)
+			moveOrders.push(path.get(i));
+
+		return moveOrders;
 	}
 }

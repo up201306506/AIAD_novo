@@ -1,11 +1,15 @@
 package agents;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Stack;
 
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.TickerBehaviour;
+import jade.core.behaviours.WakerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -27,45 +31,13 @@ public class TaxiAgent extends Agent {
 
 	private AID stationAID;
 
-	private byte[][] map;
-	private int[][] durationMap;
 	private HashMap<Cell, Cell> cellMap;
 
+	// Variables
+	private Stack<Cell> path;
+
 	protected void setup(){
-		// Read from arguments
-		// Temporary values TODO ler dos argumentos
-		int row = 0, col = 2;
-		maxCapacity = 4;
-		capacity = maxCapacity;
-
-		positionCell = new Cell(row, col, 0, false);
-
-		// TODO map
-		byte[][] tempMap = {
-				{1, 0, 0, 0},
-				{1, 1, 1, 0},
-				{1, 0, 1, 0},
-				{1, 1, 1, 0}
-		};
-
-		int[][] tempDurationMap = {
-				{10, 0, 0, 0},
-				{10, 10, 10, 0},
-				{9999, 0, 10, 0},
-				{10, 10, 10, 0}
-		};
-
-		map = tempMap;
-		durationMap = tempDurationMap;
-
-		cellMap = Cell.mapToCellMap(map, durationMap);
-
-		// Create taxi agent
-		System.out.println("-T >> " + getLocalName() + " >> Just initialized");
-
-		// --------------------------------------------
-		// Search for taxi station --------------------
-		// Prepare search for the taxi station
+		// Search for taxi station
 		DFAgentDescription dfAgentDescription = new DFAgentDescription();
 		ServiceDescription serviceDescription = new ServiceDescription();
 		serviceDescription.setType("station");
@@ -92,7 +64,48 @@ public class TaxiAgent extends Agent {
 		}
 
 		// --------------------------------------------
-		// Yellow pages -------------------------------
+		// Asks station for a map
+		ACLMessage askMapMessage = new ACLMessage(ACLMessage.REQUEST);
+		askMapMessage.addReceiver(stationAID);
+		askMapMessage.setReplyWith("request" + System.currentTimeMillis());
+		askMapMessage.setConversationId("request-map");
+		askMapMessage.setContent("map");
+		send(askMapMessage);
+
+		// Waits for map answer
+		ACLMessage replyMapMessage = blockingReceive( // Blocks until it receives a message
+				MessageTemplate.and(
+						MessageTemplate.MatchPerformative(ACLMessage.INFORM),
+						MessageTemplate.MatchInReplyTo(askMapMessage.getReplyWith())));
+
+		if(replyMapMessage != null && replyMapMessage.getConversationId().equals("request-map")){
+			try {
+				cellMap = (HashMap<Cell, Cell>) replyMapMessage.getContentObject();
+			} catch (UnreadableException e) {
+				e.printStackTrace();
+			}
+		}else{
+			System.err.println("-T >> " + getLocalName() + " >> Unexpected error receiving map");
+			takeDown();
+		}
+
+		// --------------------------------------------
+		// Variables initialization
+		path = new Stack<>(); // To hold this taxi path
+
+		// Read from arguments
+		// Temporary values TODO ler dos argumentos
+		int row = 4, col = 0;
+		maxCapacity = 4;
+		capacity = maxCapacity;
+
+		positionCell = new Cell(row, col, 0, false);
+
+		// Create taxi agent
+		System.out.println("-T >> " + getLocalName() + " >> Just initialized");
+
+		// --------------------------------------------
+		// Yellow pages
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 
@@ -112,7 +125,7 @@ public class TaxiAgent extends Agent {
 		}
 
 		// --------------------------------------------
-		// Behaviours ---------------------------------
+		// Behaviours
 		// Receive pick up proposes
 		CyclicBehaviour receivePickupProposesBehaviour = new CyclicBehaviour(this) {
 			private static final long serialVersionUID = -6899013002672695967L;
@@ -170,9 +183,13 @@ public class TaxiAgent extends Agent {
 								acceptsOrder.setContent("accept-order");
 								myAgent.send(acceptsOrder);
 
-								// TODO executa a ordem
-								// guarda destinos, calcula caminhos, etc ect
-
+								// Calculates path from current position to passenger starting cell
+								path = AStar.GetMoveOrders(AStar.AStarAlgorithm(cellMap, positionCell, passenger.getStartingCell(), true));
+								// Calculates the path to travel the passenger
+								path.addAll(AStar.GetMoveOrders( // Adds the path to the existent one
+										AStar.AStarAlgorithm(cellMap, passenger.getStartingCell(), passenger.getEndingCell(), true)));
+								// Makes the Taxi move
+								addBehaviour(new MoveBehaviour(myAgent));
 							}else{ // Station has sharing policy
 								// TODO
 							}
@@ -188,6 +205,16 @@ public class TaxiAgent extends Agent {
 
 		addBehaviour(receivePickupProposesBehaviour);
 		addBehaviour(receivePickupOrderBehaviour);
+
+		addBehaviour(new MoveBehaviour(this));
+		addBehaviour(new TickerBehaviour(this, 1000) {
+			private static final long serialVersionUID = 7007834717575965216L;
+
+			@Override
+			protected void onTick() {
+				System.err.println(positionCell.toString());
+			}
+		});
 	}
 
 	@Override
@@ -198,7 +225,7 @@ public class TaxiAgent extends Agent {
 	// --------------------------------------------
 	// Extended behaviours ------------------------
 	// Process station proposes
-	private class StationProposesBehaviour extends Behaviour{
+	private class StationProposesBehaviour extends Behaviour {
 		private static final long serialVersionUID = -7519745466815575120L;
 
 		// Behaviour states
@@ -234,12 +261,10 @@ public class TaxiAgent extends Agent {
 						break;
 					}
 
-					// Retrieves the length of the shortest path to passenger
-					score = (
-							AStar.AStarAlgorithm(cellMap,
-									positionCell, passengerData.getStartingCell(),
-									false) // While picking up a passenger, always travel the shortest path
-							).size();
+					// Calculates the fastest path to the passenger
+					LinkedList<Cell> path = AStar.AStarAlgorithm(cellMap, positionCell, passengerData.getStartingCell(), true);
+					// Calculates the duration of the path
+					score = AStar.PathDuration(path);
 
 					state = ACCEPT_PROPOSE;
 				}else{ // Station has sharing policy
@@ -270,6 +295,109 @@ public class TaxiAgent extends Agent {
 		@Override
 		public boolean done() {
 			return (state == DONE_PROCESS_PROPOSE);
+		}
+	}
+
+	// Move taxi process
+	private class MoveBehaviour extends Behaviour {
+		private static final long serialVersionUID = -8992101062346403501L;
+
+		// Behaviour states
+		private String state;
+		private static final String STATUS = "STATUS";
+		private static final String MOVE = "MOVE";
+		private static final String TRAVELLING = "TRAVELLING";
+		private static final String DONE_MOVING = "DONE_MOVING";
+
+		// Variables
+		private Cell nextCell;
+
+		// Constructor
+		public MoveBehaviour(Agent myAgent){
+			super(myAgent);
+
+			nextCell = null;
+
+			state = STATUS;
+		}
+
+		// Overrides
+		@Override
+		public void action() {
+			switch (state) {
+			case STATUS:
+				// If taxi has no path to travel
+				if(path.isEmpty()){
+					if(positionCell.equals(new Cell(0, 0, 0, false))){ // If taxi is in origin position, in taxi station
+						// The taxi does not need to travel more
+						state = DONE_MOVING;
+					}else{ // Taxi has no move orders and it is not in taxi station
+						path = AStar.GetMoveOrders(AStar.AStarAlgorithm(cellMap, positionCell, new Cell(0, 0, 0, false), true));
+					}
+				}
+
+				// Path is filled, moves taxi
+				state = MOVE;
+				break;
+			case MOVE:
+				// Verifies the stack before continuing
+				if(path.isEmpty()){
+					state = STATUS;
+					break;
+				}
+
+				// Retrieves next cell taxi has to travel to
+				nextCell = path.pop();
+				System.out.println(nextCell.toString());
+
+				// Verifies that next cell is an adjacent cell
+				if(positionCell.isAdjacent(nextCell)){
+					state = TRAVELLING;
+				}else{
+					try{
+						throw new Exception("-T >> " + getLocalName() + " >> Was attempting to travel to a not adjacent cell\n"
+								+ "Current cell was: " + positionCell + ", attempting to go to: " + nextCell);
+					}catch(Exception e){
+						System.err.println(e.getMessage());
+						state = DONE_MOVING;
+					}
+				}
+				break;
+			case TRAVELLING:
+				// Verifies that the next cell is initialized
+				if(nextCell != null){
+					// Waits the duration of the cell
+					myAgent.addBehaviour(new WakerBehaviour(myAgent, positionCell.getDuration()) {
+						private static final long serialVersionUID = 7806259233409706677L;
+
+						@Override
+						protected void handleElapsedTimeout() {
+							// Updates taxi position
+							positionCell = nextCell;
+
+							// Adds the execution of this behaviour again
+							myAgent.addBehaviour(new MoveBehaviour(myAgent));
+						}
+					});
+				}else{
+					try{
+						throw new Exception("-T >> " + getLocalName() + " >> Was attempting to travel to null cell");
+					}catch(Exception e){
+						System.err.println(e.getMessage());
+					}
+				}
+
+				// Stops this behaviour
+				state = DONE_MOVING;
+				break;
+			default:
+				break;
+			}
+		}
+
+		@Override
+		public boolean done() {
+			return (state == DONE_MOVING);
 		}
 	}
 }

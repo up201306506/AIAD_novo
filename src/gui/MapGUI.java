@@ -53,12 +53,17 @@ public class MapGUI extends JFrame {
 	private ImageIcon passengerImage;
 	private ImageIcon passengersImage;
 
+	// Variables
+	private byte[][] map;
+	private int[][] durationMap;
+
+	// Constructor
 	public MapGUI() {
 		super("Map");
 
 		loadImages();
-		byte[][] map = loadMap();
-		int[][] times = loadTimes();
+		map = loadMap();
+		durationMap = loadTimes();
 		gbc = new GridBagConstraints();
 
 		taxisTable = new JTable();
@@ -105,6 +110,16 @@ public class MapGUI extends JFrame {
 		setVisible(true);
 	}
 
+	// Getters and setters
+	public byte[][] getMap(){
+		return map;
+	}
+
+	public int[][] getDurationMap(){
+		return durationMap;
+	}
+
+	// File loading functions
 	private byte[][] loadMap() {
 		byte[][] map = null;
 
@@ -204,6 +219,7 @@ public class MapGUI extends JFrame {
 		}
 	}
 
+	// Update GUI information functions
 	public void updateTaxisTable(HashMap<AID, DataSerializable.TaxiData> taxis) {
 		for (int i = 0; i < taxisTableModel.getRowCount(); i++)
 			taxisTableModel.removeRow(i);

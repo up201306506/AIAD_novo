@@ -1,6 +1,7 @@
 package agents;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 import jade.core.AID;
 import jade.core.Agent;
@@ -10,6 +11,8 @@ import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
+import jade.lang.acl.UnreadableException;
 import utils.Cell;
 import utils.DataSerializable;
 
@@ -23,21 +26,10 @@ public class PassengerAgent extends Agent {
 
 	private AID stationAID;
 
+	private HashMap<Cell, Cell> cellMap;
+
 	protected void setup() {
-		// Read from arguments
-		// Temporary values TODO ler dos argumentos
-		int rowI = 0, colI = 0, rowF = 0, colF = 3;
-		numberOfPassengers = 3;
-
-		startingCell = new Cell(rowI, colI, 0, false);
-		endingCell = new Cell(rowF, colF, 0, false);
-
-		// Create passenger agent
-		System.out.println("=P >> " + getLocalName() + " >> Just initialized");
-
-		// --------------------------------------------
-		// Search for taxi station --------------------
-		// Prepare search for the taxi station
+		// Search for taxi station
 		DFAgentDescription dfAgentDescription = new DFAgentDescription();
 		ServiceDescription serviceDescription = new ServiceDescription();
 		serviceDescription.setType("station");
@@ -62,6 +54,43 @@ public class PassengerAgent extends Agent {
 		} catch (FIPAException fe) {
 			fe.printStackTrace();
 		}
+
+		// Asks station for a map
+		ACLMessage askMapMessage = new ACLMessage(ACLMessage.REQUEST);
+		askMapMessage.addReceiver(stationAID);
+		askMapMessage.setReplyWith("request" + System.currentTimeMillis());
+		askMapMessage.setConversationId("request-map");
+		askMapMessage.setContent("map");
+		send(askMapMessage);
+
+		// Waits for map answer
+		ACLMessage replyMapMessage = blockingReceive( // Blocks until it receives a message
+				MessageTemplate.and(
+						MessageTemplate.MatchPerformative(ACLMessage.INFORM),
+						MessageTemplate.MatchInReplyTo(askMapMessage.getReplyWith())));
+
+		if(replyMapMessage != null && replyMapMessage.getConversationId().equals("request-map")){
+			try {
+				cellMap = (HashMap<Cell, Cell>) replyMapMessage.getContentObject();
+			} catch (UnreadableException e) {
+				e.printStackTrace();
+			}
+		}else{
+			System.err.println("=P >> " + getLocalName() + " >> Unexpected error receiving map");
+			takeDown();
+		}
+
+		// --------------------------------------------
+
+		// Temporary values TODO ler dos argumentos
+		int rowI = 0, colI = 0, rowF = 0, colF = 3;
+		numberOfPassengers = 3;
+
+		startingCell = new Cell(rowI, colI, 0, false);
+		endingCell = new Cell(rowF, colF, 0, false);
+
+		// Create passenger agent
+		System.out.println("=P >> " + getLocalName() + " >> Just initialized");
 
 		// --------------------------------------------
 		// Yellow pages -------------------------------

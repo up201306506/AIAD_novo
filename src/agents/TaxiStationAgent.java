@@ -17,6 +17,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
+import utils.Cell;
 import utils.DataSerializable;
 
 public class TaxiStationAgent extends Agent{
@@ -26,6 +27,9 @@ public class TaxiStationAgent extends Agent{
 	private boolean isSharingPolicy;
 	private boolean isDiminishingDuration;
 
+	// Variables
+	private HashMap<Cell, Cell> cellMap;
+
 	// Variable holders
 	private HashMap<AID, DataSerializable.TaxiData> taxis;
 	private HashMap<AID, DataSerializable.PassengerData> passengers;
@@ -33,17 +37,6 @@ public class TaxiStationAgent extends Agent{
 	//---------------------------------------------
 	@Override
 	protected void setup() {
-		// Variables
-		System.out.println("#S >> " + getLocalName() + " >> Just initialized");
-
-		isSharingPolicy = false;
-		isDiminishingDuration = false;
-
-		taxis = new HashMap<>();
-		passengers = new HashMap<>();
-		MapGUI gui = new MapGUI();
-
-		// --------------------------------------------
 		// Search for other taxi stations
 		DFAgentDescription stationTemplate = new DFAgentDescription();
 		ServiceDescription stationServiceTemplate = new ServiceDescription();
@@ -63,7 +56,23 @@ public class TaxiStationAgent extends Agent{
 		}
 
 		// --------------------------------------------
-		// Yellow pages -------------------------------
+		// Variables
+		System.out.println("#S >> " + getLocalName() + " >> Just initialized");
+
+		// TODO ler dos argumentos
+
+		isSharingPolicy = false;
+		isDiminishingDuration = false;
+
+		// Initializes GUI
+		MapGUI mapGUI = new MapGUI();
+		cellMap = Cell.mapToCellMap(mapGUI.getMap(), mapGUI.getDurationMap());
+
+		taxis = new HashMap<>();
+		passengers = new HashMap<>();
+
+		// --------------------------------------------
+		// Yellow pages
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 
@@ -81,7 +90,37 @@ public class TaxiStationAgent extends Agent{
 		}
 
 		// --------------------------------------------
-		// Behaviours ---------------------------------
+		// Behaviours
+		// Handles map requests information
+		CyclicBehaviour mapRequestsBehaviour = new CyclicBehaviour(this) {
+			private static final long serialVersionUID = 3525184234368919653L;
+
+			@Override
+			public void action() {
+				// Defines the message template to receive
+				MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
+				ACLMessage mapRequestMessage = myAgent.receive(messageTemplate);
+				if(mapRequestMessage != null &&  mapRequestMessage.getConversationId().equals("request-map")){
+					// Verifies content of the message
+					if(mapRequestMessage.getContent().equals("map")){
+						ACLMessage replyMapRequestMessage = mapRequestMessage.createReply();
+						replyMapRequestMessage.setPerformative(ACLMessage.INFORM);
+						try {
+							replyMapRequestMessage.setContentObject(cellMap);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+						replyMapRequestMessage.setLanguage("JavaSerialization");
+						myAgent.send(replyMapRequestMessage);
+					}else{
+						System.err.println("#S >> " + getLocalName() + " >> Unexpected message handling map requests");
+					}
+				}else{
+					block();
+				}
+			}
+		};
+
 		// Receive request informations
 		CyclicBehaviour receiveRequestsBehaviour = new CyclicBehaviour(this) {
 			private static final long serialVersionUID = -1745263839997857584L;
@@ -92,11 +131,9 @@ public class TaxiStationAgent extends Agent{
 				MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
 				ACLMessage requestMessage = myAgent.receive(messageTemplate);
 				if(requestMessage != null &&  requestMessage.getConversationId().equals("request-pickup")){
-
 					try {
 						if(("JavaSerialization").equals(requestMessage.getLanguage())){
 							DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) requestMessage.getContentObject();
-							passengers.put(passenger.getAID(), passenger);
 
 							addBehaviour(new PassengerRequestBehaviour(myAgent, passenger));
 						}
@@ -109,6 +146,7 @@ public class TaxiStationAgent extends Agent{
 			}
 		};
 
+		addBehaviour(mapRequestsBehaviour);
 		addBehaviour(receiveRequestsBehaviour);
 	}
 
