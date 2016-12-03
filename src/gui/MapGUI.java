@@ -221,7 +221,7 @@ public class MapGUI extends JFrame {
 
 	// Update GUI information functions
 	public void updateTaxisTable(HashMap<AID, DataSerializable.TaxiData> taxis) {
-		for (int i = 0; i < taxisTableModel.getRowCount(); i++)
+		for (int i =  taxisTableModel.getRowCount() - 1; i >= 0; i--)
 			taxisTableModel.removeRow(i);
 
 		for (Entry<AID, TaxiData> taxi: taxis.entrySet()) {
@@ -233,7 +233,7 @@ public class MapGUI extends JFrame {
 	}
 
 	public void updatePassengersTable(HashMap<AID, DataSerializable.PassengerData> passengers) {
-		for (int i = 0; i < passengersTableModel.getRowCount(); i++)
+		for (int i = passengersTableModel.getRowCount(); i >= 0; i--)
 			passengersTableModel.removeRow(i);
 
 		for (Entry<AID, PassengerData> passenger: passengers.entrySet()) {
