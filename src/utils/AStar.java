@@ -91,7 +91,7 @@ public class AStar {
 
 			// If current cell is the end cell, a path has been found
 			if(current.getCell().equals(endingCell))
-				return RetrievePath(startingCell, endingCell, cameFrom);
+				return RetrievePath(cellMap.get(startingCell), cellMap.get(endingCell), cameFrom);
 
 			// Evaluates all neighbour cells
 			for(Cell neighbour : Cell.getNeighbourCells(cellMap, current.getCell())){
@@ -148,5 +148,15 @@ public class AStar {
 			moveOrders.push(path.get(i));
 
 		return moveOrders;
+	}
+
+	// Adds to stack of cells
+	public static Stack<Cell> addStack(Stack<Cell> original, Stack<Cell> toAdd){
+		Object[] toAddArr = toAdd.toArray();
+
+		for(Object cell : toAddArr)
+			original.push((Cell) cell);
+
+		return original;
 	}
 }

@@ -41,7 +41,7 @@ public class DataSerializable {
 			return endingCell;
 		}
 
-		public int getNumberOfPassenger() {
+		public int getNumberOfPassengers() {
 			return numberOfPassengers;
 		}
 

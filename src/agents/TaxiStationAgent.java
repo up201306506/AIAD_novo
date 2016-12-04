@@ -170,7 +170,8 @@ public class TaxiStationAgent extends Agent{
 						taxis.put(informationMessage.getSender(), taxi);
 
 						// Updates GUI information
-						updateGUI(mapGUI);
+						updateGUI(mapGUI); // TODO em vez de fazer update a todos os elementos da tabela,
+						// ter um update para só um elemento e uma função para remover esse elemento da gui
 					} catch (UnreadableException e) {
 						e.printStackTrace();
 					}

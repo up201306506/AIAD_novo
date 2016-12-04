@@ -43,7 +43,7 @@ public class PassengerAgent extends Agent {
 					blockingReceive(30000);
 
 				searchResult = DFService.search(this, dfAgentDescription);
-				System.out.println("=P >> " + getLocalName() + " >> Could not find a station");
+				if(searchResult.length == 0) System.out.println("=P >> " + getLocalName() + " >> Could not find a station");
 			}while(searchResult.length == 0);
 
 			// Station found
@@ -85,7 +85,7 @@ public class PassengerAgent extends Agent {
 		// --------------------------------------------
 
 		// Temporary values TODO ler dos argumentos
-		int rowI = 0, colI = 0, rowF = 0, colF = 3;
+		int rowI = 4, colI = 3, rowF = 4, colF = 7;
 		numberOfPassengers = 3;
 
 		startingCell = new Cell(rowI, colI, 0, false);

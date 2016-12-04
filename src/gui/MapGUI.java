@@ -242,7 +242,7 @@ public class MapGUI extends JFrame {
 													   "" + passenger.getValue().getStartingCell().getCol(),
 													   "" + passenger.getValue().getEndingCell().getRow(),
 													   "" + passenger.getValue().getEndingCell().getCol(),
-													   "" + passenger.getValue().getNumberOfPassenger() });
+													   "" + passenger.getValue().getNumberOfPassengers() });
 		}
 	}
 

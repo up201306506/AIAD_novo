@@ -1,6 +1,7 @@
 package agents;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Stack;
@@ -35,6 +36,8 @@ public class TaxiAgent extends Agent {
 
 	// Variables
 	private Stack<Cell> path;
+
+	private ArrayList<DataSerializable.PassengerData> travellingPassengers;
 
 	protected void setup(){
 		// Search for taxi station
@@ -94,6 +97,7 @@ public class TaxiAgent extends Agent {
 		// --------------------------------------------
 		// Variables initialization
 		path = new Stack<>(); // To hold this taxi path
+		travellingPassengers = new ArrayList<>(); // To hold passengers travelling
 
 		// Read from arguments
 		// Temporary values TODO ler dos argumentos
@@ -189,11 +193,31 @@ public class TaxiAgent extends Agent {
 							acceptsOrder.setContent("accept-order");
 							myAgent.send(acceptsOrder);
 
-							// Calculates path from current position to passenger starting cell
-							path = AStar.GetMoveOrders(AStar.AStarAlgorithm(cellMap, positionCell, passenger.getStartingCell(), true));
 							// Calculates the path to travel the passenger
-							path.addAll(AStar.GetMoveOrders( // Adds the path to the existent one
-									AStar.AStarAlgorithm(cellMap, passenger.getStartingCell(), passenger.getEndingCell(), true)));
+							Stack<Cell> pathToTravelPassenger = AStar.GetMoveOrders( // Adds the path to the existent one
+									AStar.AStarAlgorithm(cellMap, passenger.getStartingCell(), passenger.getEndingCell(), true));
+
+							// Calculates path from current position to passenger starting cell
+							Stack<Cell> pathToPassenger = AStar.GetMoveOrders(
+									AStar.AStarAlgorithm(cellMap, positionCell, passenger.getStartingCell(), true));
+
+							// Path to travel the passenger is the bottom of the path stack
+							path = pathToTravelPassenger;
+
+							// Add this path to current path stack
+							path = AStar.addStack(path, pathToPassenger);
+
+							// If number of passengers to pickup is inferior to taxi maximal capacity
+							/*if(passenger.getNumberOfPassengers() <= maxCapacity){
+								// Decrements taxi capacity
+								capacity -= passenger.getNumberOfPassengers();
+							}else{
+								// TODO
+							}*/
+
+							// Saves important checkpoints for notifications
+							travellingPassengers.add(passenger);
+
 							// Makes the Taxi move
 							addBehaviour(new MoveBehaviour(myAgent));
 						}else{ // Station has sharing policy
@@ -210,9 +234,6 @@ public class TaxiAgent extends Agent {
 
 		addBehaviour(receivePickupProposesBehaviour);
 		addBehaviour(receivePickupOrderBehaviour);
-
-		// TODO just testing vvvvv
-		addBehaviour(new MoveBehaviour(this));
 	}
 
 	@Override
@@ -221,8 +242,27 @@ public class TaxiAgent extends Agent {
 		System.out.println("-T >> " + getLocalName() + " >> Terminated");
 	}
 
+	// Functions
+	private void changeTaxiPosition(Cell nextPosition){
+		// Updates taxi position
+		positionCell = nextPosition;
+
+		// TODO debugging vvvv
+		System.out.println("From: " + positionCell + ", to: " + nextPosition);
+		System.err.println(path);
+
+		// Checks if any passenger was picked up or travelled
+		for(DataSerializable.PassengerData passenger : travellingPassengers){
+			if(passenger.getStartingCell().equals(positionCell)){ // If taxi is picking up passenger
+				// TODO
+			}else if(passenger.getEndingCell().equals(positionCell)){
+
+			}
+		}
+	}
+
 	// --------------------------------------------
-	// Extended behaviours ------------------------
+	// Extended behaviours
 	// Process station proposes
 	private class StationProposesBehaviour extends Behaviour {
 		private static final long serialVersionUID = -7519745466815575120L;
@@ -331,6 +371,7 @@ public class TaxiAgent extends Agent {
 					if(positionCell.equals(new Cell(0, 0, 0, false))){ // If taxi is in origin position, in taxi station
 						// The taxi does not need to travel more
 						state = DONE_MOVING;
+						break;
 					}else{ // Taxi has no move orders and it is not in taxi station
 						path = AStar.GetMoveOrders(AStar.AStarAlgorithm(cellMap, positionCell, new Cell(0, 0, 0, false), true));
 					}
@@ -352,6 +393,7 @@ public class TaxiAgent extends Agent {
 				// Verifies that next cell is an adjacent cell
 				if(positionCell.isAdjacent(nextCell)){
 					state = TRAVELLING;
+					break;
 				}else{
 					try{
 						throw new Exception("-T >> " + getLocalName() + " >> Was attempting to travel to a not adjacent cell\n"
@@ -366,13 +408,15 @@ public class TaxiAgent extends Agent {
 				// Verifies that the next cell is initialized
 				if(nextCell != null){
 					// Waits the duration of the cell
+					System.err.println(positionCell + ", " + positionCell.getDuration());
+
 					myAgent.addBehaviour(new WakerBehaviour(myAgent, positionCell.getDuration()) {
 						private static final long serialVersionUID = 7806259233409706677L;
 
 						@Override
 						protected void handleElapsedTimeout() {
 							// Updates taxi position
-							positionCell = nextCell;
+							changeTaxiPosition(nextCell);
 
 							// Send information to taxi station
 							ACLMessage informPositionMessage = new ACLMessage(ACLMessage.INFORM);
