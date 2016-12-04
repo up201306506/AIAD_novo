@@ -65,7 +65,7 @@ public class TaxiStationAgent extends Agent{
 		isDiminishingDuration = false;
 
 		// Initializes GUI
-		MapGUI mapGUI = new MapGUI();
+		final MapGUI mapGUI = new MapGUI();
 		cellMap = Cell.mapToCellMap(mapGUI.getMap(), mapGUI.getDurationMap());
 
 		taxis = new HashMap<>();
@@ -98,9 +98,11 @@ public class TaxiStationAgent extends Agent{
 			@Override
 			public void action() {
 				// Defines the message template to receive
-				MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
+				MessageTemplate messageTemplate = MessageTemplate.and(
+						MessageTemplate.MatchPerformative(ACLMessage.REQUEST),
+						MessageTemplate.MatchConversationId("request-map"));
 				ACLMessage mapRequestMessage = myAgent.receive(messageTemplate);
-				if(mapRequestMessage != null &&  mapRequestMessage.getConversationId().equals("request-map")){
+				if(mapRequestMessage != null){
 					// Verifies content of the message
 					if(mapRequestMessage.getContent().equals("map")){
 						ACLMessage replyMapRequestMessage = mapRequestMessage.createReply();
@@ -128,15 +130,47 @@ public class TaxiStationAgent extends Agent{
 			@Override
 			public void action() {
 				// Defines the message template to receive
-				MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
+				MessageTemplate messageTemplate = MessageTemplate.and(
+						MessageTemplate.MatchPerformative(ACLMessage.REQUEST),
+						MessageTemplate.and(
+								MessageTemplate.MatchConversationId("request-pickup"),
+								MessageTemplate.MatchLanguage("JavaSerialization")));
 				ACLMessage requestMessage = myAgent.receive(messageTemplate);
-				if(requestMessage != null &&  requestMessage.getConversationId().equals("request-pickup")){
+				if(requestMessage != null){
 					try {
-						if(("JavaSerialization").equals(requestMessage.getLanguage())){
-							DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) requestMessage.getContentObject();
+						DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) requestMessage.getContentObject();
+						passengers.put(requestMessage.getSender(), passenger);
 
-							addBehaviour(new PassengerRequestBehaviour(myAgent, passenger));
-						}
+						addBehaviour(new PassengerRequestBehaviour(myAgent, passenger));
+					} catch (UnreadableException e) {
+						e.printStackTrace();
+					}
+				}else{
+					block();
+				}
+			}
+		};
+
+		// Receive taxi informations
+		CyclicBehaviour receiveTaxiPositionInformationBehaviour = new CyclicBehaviour(this) {
+			private static final long serialVersionUID = -1287013062120065420L;
+
+			@Override
+			public void action() {
+				// Defines the message template to receive
+				MessageTemplate messageTemplate = MessageTemplate.and(
+						MessageTemplate.MatchPerformative(ACLMessage.INFORM),
+						MessageTemplate.and(
+								MessageTemplate.MatchConversationId("inform-state"),
+								MessageTemplate.MatchLanguage("JavaSerialization")));
+				ACLMessage informationMessage = myAgent.receive(messageTemplate);
+				if(informationMessage != null){
+					try {
+						DataSerializable.TaxiData taxi = (DataSerializable.TaxiData) informationMessage.getContentObject();
+						taxis.put(informationMessage.getSender(), taxi);
+
+						// Updates GUI information
+						updateGUI(mapGUI);
 					} catch (UnreadableException e) {
 						e.printStackTrace();
 					}
@@ -148,10 +182,13 @@ public class TaxiStationAgent extends Agent{
 
 		addBehaviour(mapRequestsBehaviour);
 		addBehaviour(receiveRequestsBehaviour);
+		addBehaviour(receiveTaxiPositionInformationBehaviour);
 	}
 
 	@Override
 	protected void takeDown() {
+		// TODO
+
 		// Deregister from yellow pages
 		try {
 			DFService.deregister(this);
@@ -161,6 +198,14 @@ public class TaxiStationAgent extends Agent{
 		}
 
 		System.out.println("#S >> " + getLocalName() + " >> Terminated");
+	}
+
+	// Functions
+	private void updateGUI(MapGUI mapGUI){
+		// Update passenger information
+		mapGUI.updatePassengersTable(passengers);
+		// Update taxi informaiton
+		mapGUI.updateTaxisTable(taxis);
 	}
 
 	// --------------------------------------------
@@ -280,13 +325,15 @@ public class TaxiStationAgent extends Agent{
 						MessageTemplate.or(
 								MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL),
 								MessageTemplate.MatchPerformative(ACLMessage.REJECT_PROPOSAL)),
-						MessageTemplate.MatchInReplyTo(proposePickupMessage.getReplyWith()));
+						MessageTemplate.and(
+								MessageTemplate.MatchInReplyTo(proposePickupMessage.getReplyWith()),
+								MessageTemplate.MatchConversationId("propose-pickup")));
 
 				state = RECEIVE_ANSWER;
 				break;
 			case RECEIVE_ANSWER:
 				ACLMessage proposalAnswer = myAgent.receive(messageTemplate);
-				if(proposalAnswer != null && proposalAnswer.getConversationId().equals("propose-pickup")){
+				if(proposalAnswer != null){
 					if(proposalAnswer.getPerformative() == ACLMessage.ACCEPT_PROPOSAL){ // If it was accept proposal
 						// Adds taxi to a priority queue with corresponding score
 						taxiScore.add(new TaxiScore(proposalAnswer.getSender(), Integer.parseInt(proposalAnswer.getContent())));
@@ -333,13 +380,15 @@ public class TaxiStationAgent extends Agent{
 						MessageTemplate.or(
 								MessageTemplate.MatchPerformative(ACLMessage.CONFIRM),
 								MessageTemplate.MatchPerformative(ACLMessage.DISCONFIRM)),
-						MessageTemplate.MatchInReplyTo(orderPickupMessage.getReplyWith()));
+						MessageTemplate.and(
+								MessageTemplate.MatchInReplyTo(orderPickupMessage.getReplyWith()),
+								MessageTemplate.MatchConversationId("order-pickup")));
 
 				state = RECEIVE_CONFIRMATION;
 				break;
 			case RECEIVE_CONFIRMATION:
 				ACLMessage orderAnswer = myAgent.receive(messageTemplate);
-				if(orderAnswer != null && orderAnswer.getConversationId().equals("order-pickup")){
+				if(orderAnswer != null){
 					if(orderAnswer.getPerformative() == ACLMessage.CONFIRM){ // If order was confirmed
 						if(orderAnswer.getContent().equals("accept-order"))
 							state = DONE_PROCESS_REQUEST;

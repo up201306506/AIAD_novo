@@ -5,7 +5,6 @@ import java.util.HashMap;
 
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -67,9 +66,12 @@ public class PassengerAgent extends Agent {
 		ACLMessage replyMapMessage = blockingReceive( // Blocks until it receives a message
 				MessageTemplate.and(
 						MessageTemplate.MatchPerformative(ACLMessage.INFORM),
-						MessageTemplate.MatchInReplyTo(askMapMessage.getReplyWith())));
-
-		if(replyMapMessage != null && replyMapMessage.getConversationId().equals("request-map")){
+						MessageTemplate.and(
+								MessageTemplate.MatchInReplyTo(askMapMessage.getReplyWith()),
+								MessageTemplate.and(
+										MessageTemplate.MatchConversationId("request-map"),
+										MessageTemplate.MatchLanguage("JavaSerialization")))));
+		if(replyMapMessage != null){
 			try {
 				cellMap = (HashMap<Cell, Cell>) replyMapMessage.getContentObject();
 			} catch (UnreadableException e) {
@@ -93,7 +95,7 @@ public class PassengerAgent extends Agent {
 		System.out.println("=P >> " + getLocalName() + " >> Just initialized");
 
 		// --------------------------------------------
-		// Yellow pages -------------------------------
+		// Yellow pages
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 
@@ -104,44 +106,34 @@ public class PassengerAgent extends Agent {
 		}
 
 		// --------------------------------------------
-		// Behaviours ---------------------------------
-		// Request taxi pick up
-		OneShotBehaviour requestTaxiBehaviour = new OneShotBehaviour(this) {
-			private static final long serialVersionUID = 8831324489911981757L;
+		// Request pick up from taxi
+		ACLMessage requestTaxi = new ACLMessage(ACLMessage.REQUEST);
+		requestTaxi.addReceiver(stationAID);
+		requestTaxi.setConversationId("request-pickup");
+		try {
+			requestTaxi.setContentObject(
+					new DataSerializable.PassengerData(getAID(),
+							startingCell,
+							endingCell,
+							numberOfPassengers)
+					);
+			requestTaxi.setLanguage("JavaSerialization");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
-			@Override
-			public void action() {
-				// Request pick up from taxi
-				ACLMessage requestTaxi = new ACLMessage(ACLMessage.REQUEST);
-				requestTaxi.addReceiver(stationAID);
-				requestTaxi.setConversationId("request-pickup");
-				try {
-					requestTaxi.setContentObject(
-							new DataSerializable.PassengerData(myAgent.getAID(),
-									startingCell,
-									endingCell,
-									numberOfPassengers)
-							);
-					requestTaxi.setLanguage("JavaSerialization");
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+		send(requestTaxi);
 
-				myAgent.send(requestTaxi);
+		// TODO start timer, parallel behaviour
 
-				// TODO start timer, parallel behaviour
-
-				System.out.println("=P >> " + getLocalName() + " >> State is: I: "
-						+ startingCell.toString() + " | F: " + endingCell.toString()
-						+ " | N - " + numberOfPassengers);
-			}
-		};
-
-		addBehaviour(requestTaxiBehaviour);
+		System.out.println("=P >> " + getLocalName() + " >> State is: I: "
+				+ startingCell.toString() + " | F: " + endingCell.toString()
+				+ " | N - " + numberOfPassengers);
 	}
 
 	@Override
 	protected void takeDown() {
+		// TODO
 		System.out.println("=P >> " + getLocalName() + " >> Terminated");
 	}
 }

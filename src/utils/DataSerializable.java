@@ -59,34 +59,20 @@ public class DataSerializable {
 		}
 	}
 
-
-
-
-
-
-
-
-
-
-
 	// Taxi serializable class
 	public static class TaxiData implements Serializable {
 		private static final long serialVersionUID = 6136110741124038826L;
 
-		// Taxi dynamic variables
+		// Variables
 		private AID taxiAID;
-		private int xCoord;
-		private int yCoord;
+		private Cell positionCell;
 		private int capacity;
-		private int maxCapacity;
 
 		// Constructor
-		public TaxiData(AID taxiAID, int xCoord, int yCoord, int capacity, int maxCapacity){
+		public TaxiData(AID taxiAID, Cell positionCell, int capacity){
 			this.taxiAID = taxiAID;
-			this.xCoord = xCoord;
-			this.yCoord = yCoord;
+			this.positionCell = positionCell;
 			this.capacity = capacity;
-			this.maxCapacity = maxCapacity;
 		}
 
 		// Getters and setters
@@ -94,27 +80,12 @@ public class DataSerializable {
 			return taxiAID;
 		}
 
-		public int getXCoord(){
-			return xCoord;
-		}
-
-		public int getYCoord(){
-			return yCoord;
+		public Cell getPosition(){
+			return positionCell;
 		}
 
 		public int getCapacity(){
 			return capacity;
-		}
-
-		public int getMaxCapacity(){
-			return maxCapacity;
-		}
-
-		// Aux functions
-		@Override
-		public String toString() {
-			return taxiAID.getLocalName() + " >> State is: " + "X - " + xCoord + "| Y - " + yCoord
-					+ "| C - " + capacity + "| MC - " + maxCapacity;
 		}
 	}
 }

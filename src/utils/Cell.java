@@ -112,7 +112,7 @@ public class Cell implements Serializable {
 
 		for(int row = 0; row < map.length; row++){
 			for(int col = 0; col < map[row].length; col++){
-				Cell cell = new Cell(row, col, durationMap[row][col], (map[row][col] == 0));
+				Cell cell = new Cell(row, col, durationMap[row][col], (map[row][col] == 1));
 				cellMap.put(cell, cell);
 			}
 		}

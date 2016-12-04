@@ -1,5 +1,6 @@
 package agents;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Stack;
@@ -8,7 +9,6 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
-import jade.core.behaviours.TickerBehaviour;
 import jade.core.behaviours.WakerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
@@ -52,13 +52,12 @@ public class TaxiAgent extends Agent {
 					blockingReceive(30000);
 
 				searchResult = DFService.search(this, dfAgentDescription);
-				System.out.println("-T >> " + getLocalName() + " >> Could not find a station");
+				if(searchResult.length == 0) System.out.println("-T >> " + getLocalName() + " >> Could not find a station");
 			}while(searchResult.length == 0);
 
 			// Station found
 			stationAID = searchResult[0].getName();
 			System.out.println("-T >> " + getLocalName() + " >> Found station >> " + stationAID.getLocalName());
-
 		} catch (FIPAException fe) {
 			fe.printStackTrace();
 		}
@@ -76,9 +75,12 @@ public class TaxiAgent extends Agent {
 		ACLMessage replyMapMessage = blockingReceive( // Blocks until it receives a message
 				MessageTemplate.and(
 						MessageTemplate.MatchPerformative(ACLMessage.INFORM),
-						MessageTemplate.MatchInReplyTo(askMapMessage.getReplyWith())));
-
-		if(replyMapMessage != null && replyMapMessage.getConversationId().equals("request-map")){
+						MessageTemplate.and(
+								MessageTemplate.MatchInReplyTo(askMapMessage.getReplyWith()),
+								MessageTemplate.and(
+										MessageTemplate.MatchConversationId("request-map"),
+										MessageTemplate.MatchLanguage("JavaSerialization")))));
+		if(replyMapMessage != null){
 			try {
 				cellMap = (HashMap<Cell, Cell>) replyMapMessage.getContentObject();
 			} catch (UnreadableException e) {
@@ -133,16 +135,18 @@ public class TaxiAgent extends Agent {
 			@Override
 			public void action() {
 				// Defines the message template to receive
-				MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
+				MessageTemplate messageTemplate = MessageTemplate.and(
+						MessageTemplate.MatchPerformative(ACLMessage.PROPOSE),
+						MessageTemplate.and(
+								MessageTemplate.MatchConversationId("propose-pickup"),
+								MessageTemplate.MatchLanguage("JavaSerialization")));
 				ACLMessage proposeMessage = myAgent.receive(messageTemplate);
-				if(proposeMessage != null &&  proposeMessage.getConversationId().equals("propose-pickup")){
-
+				if(proposeMessage != null){
 					try {
-						if(("JavaSerialization").equals(proposeMessage.getLanguage())){
-							DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) proposeMessage.getContentObject();
+						DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) proposeMessage.getContentObject();
 
-							addBehaviour(new StationProposesBehaviour(myAgent, proposeMessage, passenger));
-						}
+						// Processes the taxi station's proposal
+						addBehaviour(new StationProposesBehaviour(myAgent, proposeMessage, passenger));
 					} catch (UnreadableException e) {
 						e.printStackTrace();
 					}
@@ -158,41 +162,42 @@ public class TaxiAgent extends Agent {
 			@Override
 			public void action() {
 				// Defines the message template to receive
-				MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+				MessageTemplate messageTemplate = MessageTemplate.and(
+						MessageTemplate.MatchPerformative(ACLMessage.INFORM),
+						MessageTemplate.and(
+								MessageTemplate.MatchConversationId("order-pickup"),
+								MessageTemplate.MatchLanguage("JavaSerialization")));
 				ACLMessage orderMessage = myAgent.receive(messageTemplate);
-				if(orderMessage != null &&  orderMessage.getConversationId().equals("order-pickup")){
-
+				if(orderMessage != null){
 					try {
-						if(("JavaSerialization").equals(orderMessage.getLanguage())){
-							DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) orderMessage.getContentObject();
+						DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) orderMessage.getContentObject();
 
-							// Re-verifies order
-							if(!passenger.isSharingPolicy()){ // Station has no sharing policy
-								// Taxi is already taken by another passenger
-								if(capacity != maxCapacity){
-									// Refuses order
-									ACLMessage refuseOrder = orderMessage.createReply();
-									refuseOrder.setPerformative(ACLMessage.DISCONFIRM);
-									refuseOrder.setContent("refuse-order");
-									myAgent.send(refuseOrder);
-								}
-
-								// Accepts order
-								ACLMessage acceptsOrder = orderMessage.createReply();
-								acceptsOrder.setPerformative(ACLMessage.CONFIRM);
-								acceptsOrder.setContent("accept-order");
-								myAgent.send(acceptsOrder);
-
-								// Calculates path from current position to passenger starting cell
-								path = AStar.GetMoveOrders(AStar.AStarAlgorithm(cellMap, positionCell, passenger.getStartingCell(), true));
-								// Calculates the path to travel the passenger
-								path.addAll(AStar.GetMoveOrders( // Adds the path to the existent one
-										AStar.AStarAlgorithm(cellMap, passenger.getStartingCell(), passenger.getEndingCell(), true)));
-								// Makes the Taxi move
-								addBehaviour(new MoveBehaviour(myAgent));
-							}else{ // Station has sharing policy
-								// TODO
+						// Re-verifies order
+						if(!passenger.isSharingPolicy()){ // Station has no sharing policy
+							// Taxi is already taken by another passenger
+							if(capacity != maxCapacity){
+								// Refuses order
+								ACLMessage refuseOrder = orderMessage.createReply();
+								refuseOrder.setPerformative(ACLMessage.DISCONFIRM);
+								refuseOrder.setContent("refuse-order");
+								myAgent.send(refuseOrder);
 							}
+
+							// Accepts order
+							ACLMessage acceptsOrder = orderMessage.createReply();
+							acceptsOrder.setPerformative(ACLMessage.CONFIRM);
+							acceptsOrder.setContent("accept-order");
+							myAgent.send(acceptsOrder);
+
+							// Calculates path from current position to passenger starting cell
+							path = AStar.GetMoveOrders(AStar.AStarAlgorithm(cellMap, positionCell, passenger.getStartingCell(), true));
+							// Calculates the path to travel the passenger
+							path.addAll(AStar.GetMoveOrders( // Adds the path to the existent one
+									AStar.AStarAlgorithm(cellMap, passenger.getStartingCell(), passenger.getEndingCell(), true)));
+							// Makes the Taxi move
+							addBehaviour(new MoveBehaviour(myAgent));
+						}else{ // Station has sharing policy
+							// TODO
 						}
 					} catch (UnreadableException e) {
 						e.printStackTrace();
@@ -206,19 +211,13 @@ public class TaxiAgent extends Agent {
 		addBehaviour(receivePickupProposesBehaviour);
 		addBehaviour(receivePickupOrderBehaviour);
 
+		// TODO just testing vvvvv
 		addBehaviour(new MoveBehaviour(this));
-		addBehaviour(new TickerBehaviour(this, 1000) {
-			private static final long serialVersionUID = 7007834717575965216L;
-
-			@Override
-			protected void onTick() {
-				System.err.println(positionCell.toString());
-			}
-		});
 	}
 
 	@Override
 	protected void takeDown() {
+		// TODO
 		System.out.println("-T >> " + getLocalName() + " >> Terminated");
 	}
 
@@ -250,6 +249,7 @@ public class TaxiAgent extends Agent {
 			state = PROCESS_PROPOSE;
 		}
 
+		// Overrides
 		@Override
 		public void action() {
 			switch (state) {
@@ -348,7 +348,6 @@ public class TaxiAgent extends Agent {
 
 				// Retrieves next cell taxi has to travel to
 				nextCell = path.pop();
-				System.out.println(nextCell.toString());
 
 				// Verifies that next cell is an adjacent cell
 				if(positionCell.isAdjacent(nextCell)){
@@ -374,6 +373,20 @@ public class TaxiAgent extends Agent {
 						protected void handleElapsedTimeout() {
 							// Updates taxi position
 							positionCell = nextCell;
+
+							// Send information to taxi station
+							ACLMessage informPositionMessage = new ACLMessage(ACLMessage.INFORM);
+							informPositionMessage.addReceiver(stationAID);
+							informPositionMessage.setConversationId("inform-state");
+							try {
+								informPositionMessage.setContentObject(
+										new DataSerializable.TaxiData(myAgent.getAID(), positionCell, capacity));
+								informPositionMessage.setLanguage("JavaSerialization");
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+
+							myAgent.send(informPositionMessage);
 
 							// Adds the execution of this behaviour again
 							myAgent.addBehaviour(new MoveBehaviour(myAgent));

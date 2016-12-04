@@ -36,8 +36,8 @@ public class MapGUI extends JFrame {
 	private JPanel tablesPanel;
 	private JTable taxisTable, passengersTable;
 	private DefaultTableModel taxisTableModel, passengersTableModel;
-	private String[] taxisTableColumnNames = { "Name", "X", "Y", "Cap" };
-	private String[] passengersTableColumnNames = { "Name", "Xi", "Yi", "Xf", "Yf", "Num" };
+	private String[] taxisTableColumnNames = { "Name", "Row", "Col", "Cap" };
+	private String[] passengersTableColumnNames = { "Name", "iRow", "iCol", "fRow", "fCol", "Num" };
 
 	// Map View
 	private JPanel mapPanel;
@@ -225,19 +225,19 @@ public class MapGUI extends JFrame {
 			taxisTableModel.removeRow(i);
 
 		for (Entry<AID, TaxiData> taxi: taxis.entrySet()) {
-			taxisTableModel.addRow(new String[] { "" + taxi.getValue().getAID(),
-												  "" + taxi.getValue().getXCoord(),
-												  "" + taxi.getValue().getYCoord(),
+			taxisTableModel.addRow(new String[] { "" + taxi.getValue().getAID().getLocalName(),
+												  "" + taxi.getValue().getPosition().getRow(),
+												  "" + taxi.getValue().getPosition().getCol(),
 												  "" + taxi.getValue().getCapacity() });
 		}
 	}
 
 	public void updatePassengersTable(HashMap<AID, DataSerializable.PassengerData> passengers) {
-		for (int i = passengersTableModel.getRowCount(); i >= 0; i--)
+		for (int i = passengersTableModel.getRowCount() - 1; i >= 0; i--)
 			passengersTableModel.removeRow(i);
 
 		for (Entry<AID, PassengerData> passenger: passengers.entrySet()) {
-			passengersTableModel.addRow(new String[] { "" + passenger.getValue().getAID(),
+			passengersTableModel.addRow(new String[] { "" + passenger.getValue().getAID().getLocalName(),
 													   "" + passenger.getValue().getStartingCell().getRow(),
 													   "" + passenger.getValue().getStartingCell().getCol(),
 													   "" + passenger.getValue().getEndingCell().getRow(),
