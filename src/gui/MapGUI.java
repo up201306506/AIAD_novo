@@ -61,6 +61,7 @@ public class MapGUI extends JFrame {
 	public MapGUI() {
 		super("Map");
 
+		
 		loadImages();
 		map = loadMap();
 		durationMap = loadTimes();
