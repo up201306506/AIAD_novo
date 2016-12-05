@@ -73,6 +73,24 @@ public class DataSerializable {
 			this.isSharingPolicy = isSharingPolicy;
 			this.isDiminishingDuration = isDiminishingDuration;
 		}
+
+		// Overrides
+		@Override
+		public boolean equals(Object obj) {
+			if(obj == this) return true;
+
+			if(!(obj instanceof PassengerData)) return false;
+
+			PassengerData that = (PassengerData) obj;
+			if(this.passengerAID.equals(that.passengerAID)) return true;
+
+			return false;
+		}
+
+		@Override
+		public int hashCode() {
+			return passengerAID.hashCode();
+		}
 	}
 
 	// Taxi serializable class
@@ -102,6 +120,24 @@ public class DataSerializable {
 
 		public int getCapacity(){
 			return capacity;
+		}
+
+		// Overrides
+		@Override
+		public boolean equals(Object obj) {
+			if(obj == this) return true;
+
+			if(!(obj instanceof TaxiData)) return false;
+
+			TaxiData that = (TaxiData) obj;
+			if(this.taxiAID.equals(that.taxiAID)) return true;
+
+			return false;
+		}
+
+		@Override
+		public int hashCode() {
+			return taxiAID.hashCode();
 		}
 	}
 }

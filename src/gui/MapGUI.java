@@ -218,51 +218,49 @@ public class MapGUI extends JFrame {
 	public void updateTaxi(DataSerializable.TaxiData taxi) {
 		if (taxisTableModel.getRowCount() == 0) {
 			taxis.put(taxi, taxi.getPosition());
-			map[taxi.getPosition().getRow()][taxi.getPosition().getCol()] = 2;
 			taxisTableModel.addRow(new String[] { "" + taxi.getAID().getLocalName(),
 												  "" + taxi.getPosition().getRow(),
 												  "" + taxi.getPosition().getCol(),
 												  "" + taxi.getCapacity() });
+			updateMap(taxi.getPosition());
 		} else {
 			for (int i = 0; i < taxisTableModel.getRowCount(); i++) {
-				if (taxisTableModel.getValueAt(i, 0) == taxi.getAID().getLocalName()) {
+				if (taxisTableModel.getValueAt(i, 0).equals(taxi.getAID().getLocalName())) {
 					Cell temp = taxis.get(taxi);
+					System.out.println(temp);
 					
 					taxis.put(taxi, taxi.getPosition());
 					taxisTableModel.setValueAt("" + taxi.getPosition().getRow(), i, 1);
 					taxisTableModel.setValueAt("" + taxi.getPosition().getCol(), i, 2);
 					taxisTableModel.setValueAt("" + taxi.getCapacity(), i, 3);
 					
-					map[temp.getRow()][temp.getCol()] = 0;
-					map[taxi.getPosition().getRow()][taxi.getPosition().getCol()] = 2;
+					updateMap(temp, taxi.getPosition());
 					return;
 				}
 			}
 			
 			taxis.put(taxi, taxi.getPosition());
-			map[taxi.getPosition().getRow()][taxi.getPosition().getCol()] = 2;
 			taxisTableModel.addRow(new String[] { "" + taxi.getAID().getLocalName(),
 												  "" + taxi.getPosition().getRow(),
 												  "" + taxi.getPosition().getCol(),
 												  "" + taxi.getCapacity() });
+			updateMap(taxi.getPosition());
 		}
-		
-		updateMap();
 	}
 	
 	public void updatePassenger(DataSerializable.PassengerData passenger) {
 		if (passengersTableModel.getRowCount() == 0) {
 			passengers.put(passenger, passenger.getStartingCell());
-			map[passenger.getStartingCell().getRow()][passenger.getStartingCell().getCol()] = 3;
 			passengersTableModel.addRow(new String[] { "" + passenger.getAID().getLocalName(),
 													   "" + passenger.getStartingCell().getRow(),
 													   "" + passenger.getStartingCell().getCol(),
 													   "" + passenger.getEndingCell().getRow(),
 													   "" + passenger.getEndingCell().getCol(),
 													   "" + passenger.getNumberOfPassengers() });
+			updateMap(passenger.getStartingCell());
 		} else {
 			for (int i = 0; i < passengersTableModel.getRowCount(); i++) {
-				if (passengersTableModel.getValueAt(i, 0) == passenger.getAID().getLocalName()) {
+				if (passengersTableModel.getValueAt(i, 0).equals(passenger.getAID().getLocalName())) {
 					Cell temp = passengers.get(passenger);
 					
 					passengers.put(passenger, passenger.getStartingCell());
@@ -272,27 +270,27 @@ public class MapGUI extends JFrame {
 					passengersTableModel.setValueAt("" + passenger.getEndingCell().getCol(), i, 1);
 					passengersTableModel.setValueAt("" + passenger.getNumberOfPassengers(), i, 1);
 					
-					map[temp.getRow()][temp.getCol()] = 0;
-					map[passenger.getStartingCell().getRow()][passenger.getStartingCell().getCol()] = 3;
+					updateMap(temp, passenger.getStartingCell());
 					return;
 				}
 			}
 			
 			passengers.put(passenger, passenger.getStartingCell());
-			map[passenger.getStartingCell().getRow()][passenger.getStartingCell().getCol()] = 3;
 			passengersTableModel.addRow(new String[] { "" + passenger.getAID().getLocalName(),
 													   "" + passenger.getStartingCell().getRow(),
 													   "" + passenger.getStartingCell().getCol(),
 													   "" + passenger.getEndingCell().getRow(),
 													   "" + passenger.getEndingCell().getCol(),
 													   "" + passenger.getNumberOfPassengers() });
+			updateMap(passenger.getStartingCell());
 		}
-		
-		updateMap();
 	}
 	
-	private void updateMap() {
-		displayMap();
-		mapPanel.repaint();
+	private void updateMap(Cell newPos) {
+		// TODO
+	}
+	
+	private void updateMap(Cell previousPos, Cell newPos) {
+		// TODO
 	}
 }
