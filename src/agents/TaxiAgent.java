@@ -180,7 +180,7 @@ public class TaxiAgent extends Agent {
 						// Re-verifies order
 						if(!passenger.isSharingPolicy()){ // Station has no sharing policy
 							// Taxi is already taken by another passenger
-							if(capacity != maxCapacity){
+							if(travellingPassengers.size() != 0){
 								// Refuses order
 								ACLMessage refuseOrder = orderMessage.createReply();
 								refuseOrder.setPerformative(ACLMessage.DISCONFIRM);
@@ -212,6 +212,7 @@ public class TaxiAgent extends Agent {
 							travellingPassengers.add(passenger);
 
 							// Makes the Taxi move
+							myAgent.removeBehaviour(new MoveBehaviour(null));
 							addBehaviour(new MoveBehaviour(myAgent));
 						}else{ // Station has sharing policy
 							// TODO
@@ -503,6 +504,14 @@ public class TaxiAgent extends Agent {
 		@Override
 		public boolean done() {
 			return (state == DONE_MOVING);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if(obj == this) return true;
+
+			if(!(obj instanceof MoveBehaviour)) return false;
+			else return true;
 		}
 	}
 }
