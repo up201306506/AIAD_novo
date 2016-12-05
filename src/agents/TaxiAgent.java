@@ -18,6 +18,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
+import jade.wrapper.ControllerException;
 import utils.AStar;
 import utils.Cell;
 import utils.DataSerializable;
@@ -236,17 +237,16 @@ public class TaxiAgent extends Agent {
 		takedownMessage.setConversationId("takedown-taxi");
 		takedownMessage.setContent("takedown");
 		send(takedownMessage);
-		// De-register from the yellow pages
-		try {
-			DFService.deregister(this);
-		}
-		catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
 		// Printout a dismissal message
 		System.out.println("-T >> " + getLocalName() + " >> Terminated");
 		// Finalizes cleanup take down
 		super.takeDown();
+		// Kill agent
+		try {
+			getContainerController().getAgent(getLocalName()).kill();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
 	}
 
 	// Functions

@@ -15,6 +15,7 @@ import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
+import jade.wrapper.ControllerException;
 import jade.wrapper.StaleProxyException;
 import utils.Cell;
 import utils.DataSerializable;
@@ -89,7 +90,7 @@ public class PassengerAgent extends Agent {
 		// --------------------------------------------
 
 		// Temporary values TODO ler dos argumentos
-		int rowI = 4, colI = 3, rowF = 4, colF = 7;
+		int rowI = 4, colI = 6, rowF = 0, colF = 6;
 		numberOfPassengers = 3;
 
 		startingCell = new Cell(rowI, colI, 0, false);
@@ -222,7 +223,8 @@ public class PassengerAgent extends Agent {
 		send(takedownMessage);
 		// De-register from the yellow pages
 		try {
-			DFService.deregister(this);
+			// TODO
+			DFService.deregister(this, getAID());
 		}
 		catch (FIPAException fe) {
 			fe.printStackTrace();
@@ -230,6 +232,12 @@ public class PassengerAgent extends Agent {
 		// Printout a dismissal message
 		System.out.println("=P >> " + getLocalName() + " >> Terminated");
 		// Finalizes cleanup take down
-		super.takeDown();
+		//super.takeDown();
+		// Kill agent
+		try {
+			getContainerController().getAgent(getLocalName()).kill();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
 	}
 }

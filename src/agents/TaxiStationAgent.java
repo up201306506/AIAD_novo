@@ -17,6 +17,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
+import jade.wrapper.ControllerException;
 import utils.Cell;
 import utils.DataSerializable;
 
@@ -217,7 +218,7 @@ public class TaxiStationAgent extends Agent{
 				ACLMessage takedownMessage = myAgent.receive(messageTemplate);
 				if(takedownMessage != null){
 					// Verifies content
-					if(!takedownMessage.getContent().equals("delivered")){
+					if(!takedownMessage.getContent().equals("takedown")){
 						try{
 							throw new Exception("#S >> " + getLocalName() + " >> Unexpected message handling takedowns");
 						}catch(Exception e){
@@ -226,10 +227,10 @@ public class TaxiStationAgent extends Agent{
 					}
 
 					// Updates agent tables
-					if(takedownMessage.getContent().equals("takedown-passenger")){
+					if(takedownMessage.getConversationId().equals("takedown-passenger")){
 						// Deletes passenger from table
 						passengers.remove(takedownMessage.getSender());
-					}else if(takedownMessage.getContent().equals("takedown-taxi")){
+					}else if(takedownMessage.getConversationId().equals("takedown-taxi")){
 						// Deletes taxi from table
 						taxis.remove(takedownMessage.getSender());
 					}else{
@@ -254,19 +255,18 @@ public class TaxiStationAgent extends Agent{
 
 	@Override
 	protected void takeDown() {
-		// De-register from the yellow pages
-		try {
-			DFService.deregister(this);
-		}
-		catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
 		// Disposes GUI
 		mapGUI.dispose();
 		// Printout a dismissal message
 		System.out.println("#S >> " + getLocalName() + " >> Terminated");
 		// Finalizes cleanup take down
 		super.takeDown();
+		// Kill agent
+		try {
+			getContainerController().getAgent(getLocalName()).kill();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
 	}
 
 	// Functions
