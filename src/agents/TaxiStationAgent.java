@@ -172,7 +172,7 @@ public class TaxiStationAgent extends Agent{
 
 						// Updates GUI information
 						updateGUI(mapGUI); // TODO em vez de fazer update a todos os elementos da tabela,
-						// ter um update para só um elemento e uma função para remover esse elemento da gui
+						// ter um update para sï¿½ um elemento e uma funï¿½ï¿½o para remover esse elemento da gui
 					} catch (UnreadableException e) {
 						e.printStackTrace();
 					}
@@ -271,10 +271,7 @@ public class TaxiStationAgent extends Agent{
 
 	// Functions
 	private void updateGUI(MapGUI mapGUI){
-		// Update passenger information
-		mapGUI.updatePassengersTable(passengers);
-		// Update taxi informaiton
-		mapGUI.updateTaxisTable(taxis);
+		
 	}
 
 	// --------------------------------------------

@@ -8,7 +8,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map.Entry;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -19,10 +18,8 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 
-import jade.core.AID;
+import utils.Cell;
 import utils.DataSerializable;
-import utils.DataSerializable.PassengerData;
-import utils.DataSerializable.TaxiData;
 
 public class MapGUI extends JFrame {
 
@@ -56,15 +53,20 @@ public class MapGUI extends JFrame {
 	// Variables
 	private byte[][] map;
 	private int[][] durationMap;
+	private HashMap<DataSerializable.TaxiData, Cell> taxis;
+	private HashMap<DataSerializable.PassengerData, Cell> passengers;
 
 	// Constructor
 	public MapGUI() {
 		super("Map");
 
-		
+		loadMap();
+		loadTimes();
 		loadImages();
-		map = loadMap();
-		durationMap = loadTimes();
+		
+		taxis = new HashMap<>();
+		passengers = new HashMap<>();
+		
 		gbc = new GridBagConstraints();
 
 		taxisTable = new JTable();
@@ -85,7 +87,7 @@ public class MapGUI extends JFrame {
 		mapPanel = new JPanel();
 		mapPanel.setLayout(new GridLayout(map.length, 0));
 
-		displayMap(map);
+		displayMap();
 
 		JScrollPane panel1 = new JScrollPane(taxisTable);
 		JScrollPane panel2 = new JScrollPane(passengersTable);
@@ -112,18 +114,16 @@ public class MapGUI extends JFrame {
 	}
 
 	// Getters and setters
-	public byte[][] getMap(){
+	public byte[][] getMap() {
 		return map;
 	}
 
-	public int[][] getDurationMap(){
+	public int[][] getDurationMap() {
 		return durationMap;
 	}
 
 	// File loading functions
-	private byte[][] loadMap() {
-		byte[][] map = null;
-
+	private void loadMap() {
 		try {
 			BufferedReader reader = new BufferedReader(new FileReader("resources/map.txt"));
 
@@ -143,26 +143,22 @@ public class MapGUI extends JFrame {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-		return map;
 	}
 
-	private int[][] loadTimes() {
-		int[][] times = null;
-
+	private void loadTimes() {
 		try {
 			BufferedReader reader = new BufferedReader(new FileReader("resources/times.txt"));
 
 			String firstLine = reader.readLine();
 			String sizes[] = firstLine.split(":");
-			times = new int[Integer.parseInt(sizes[0])][Integer.parseInt(sizes[1])];
+			durationMap = new int[Integer.parseInt(sizes[0])][Integer.parseInt(sizes[1])];
 
 			int j = 0;
 			String line = null;
 			while ((line = reader.readLine()) != null) {
 				String[] values = line.split(",");
 				for (int i = 0; i < values.length; i++)
-					times[j][i] = Integer.parseInt(values[i]);
+					durationMap[j][i] = Integer.parseInt(values[i]);
 				j++;
 			}
 
@@ -170,8 +166,6 @@ public class MapGUI extends JFrame {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-		return times;
 	}
 
 	private void loadImages() {
@@ -185,7 +179,7 @@ public class MapGUI extends JFrame {
 		passengersImage = new ImageIcon("resources/images/passengers.png");
 	}
 
-	private void displayMap(byte[][] map) {
+	private void displayMap() {
 		for (int y = 0; y < map.length; y++) {
 			gbc.gridy = y;
 			for (int x = 0; x < map[y].length; x++) {
@@ -221,34 +215,84 @@ public class MapGUI extends JFrame {
 	}
 
 	// Update GUI information functions
-	public void updateTaxisTable(HashMap<AID, DataSerializable.TaxiData> taxis) {
-		for (int i =  taxisTableModel.getRowCount() - 1; i >= 0; i--)
-			taxisTableModel.removeRow(i);
-
-		for (Entry<AID, TaxiData> taxi: taxis.entrySet()) {
-			taxisTableModel.addRow(new String[] { "" + taxi.getValue().getAID().getLocalName(),
-												  "" + taxi.getValue().getPosition().getRow(),
-												  "" + taxi.getValue().getPosition().getCol(),
-												  "" + taxi.getValue().getCapacity() });
+	public void updateTaxi(DataSerializable.TaxiData taxi) {
+		if (taxisTableModel.getRowCount() == 0) {
+			taxis.put(taxi, taxi.getPosition());
+			map[taxi.getPosition().getRow()][taxi.getPosition().getCol()] = 2;
+			taxisTableModel.addRow(new String[] { "" + taxi.getAID().getLocalName(),
+												  "" + taxi.getPosition().getRow(),
+												  "" + taxi.getPosition().getCol(),
+												  "" + taxi.getCapacity() });
+		} else {
+			for (int i = 0; i < taxisTableModel.getRowCount(); i++) {
+				if (taxisTableModel.getValueAt(i, 0) == taxi.getAID().getLocalName()) {
+					Cell temp = taxis.get(taxi);
+					
+					taxis.put(taxi, taxi.getPosition());
+					taxisTableModel.setValueAt("" + taxi.getPosition().getRow(), i, 1);
+					taxisTableModel.setValueAt("" + taxi.getPosition().getCol(), i, 2);
+					taxisTableModel.setValueAt("" + taxi.getCapacity(), i, 3);
+					
+					map[temp.getRow()][temp.getCol()] = 0;
+					map[taxi.getPosition().getRow()][taxi.getPosition().getCol()] = 2;
+					return;
+				}
+			}
+			
+			taxis.put(taxi, taxi.getPosition());
+			map[taxi.getPosition().getRow()][taxi.getPosition().getCol()] = 2;
+			taxisTableModel.addRow(new String[] { "" + taxi.getAID().getLocalName(),
+												  "" + taxi.getPosition().getRow(),
+												  "" + taxi.getPosition().getCol(),
+												  "" + taxi.getCapacity() });
 		}
+		
+		updateMap();
 	}
-
-	public void updatePassengersTable(HashMap<AID, DataSerializable.PassengerData> passengers) {
-		for (int i = passengersTableModel.getRowCount() - 1; i >= 0; i--)
-			passengersTableModel.removeRow(i);
-
-		for (Entry<AID, PassengerData> passenger: passengers.entrySet()) {
-			passengersTableModel.addRow(new String[] { "" + passenger.getValue().getAID().getLocalName(),
-													   "" + passenger.getValue().getStartingCell().getRow(),
-													   "" + passenger.getValue().getStartingCell().getCol(),
-													   "" + passenger.getValue().getEndingCell().getRow(),
-													   "" + passenger.getValue().getEndingCell().getCol(),
-													   "" + passenger.getValue().getNumberOfPassengers() });
+	
+	public void updatePassenger(DataSerializable.PassengerData passenger) {
+		if (passengersTableModel.getRowCount() == 0) {
+			passengers.put(passenger, passenger.getStartingCell());
+			map[passenger.getStartingCell().getRow()][passenger.getStartingCell().getCol()] = 3;
+			passengersTableModel.addRow(new String[] { "" + passenger.getAID().getLocalName(),
+													   "" + passenger.getStartingCell().getRow(),
+													   "" + passenger.getStartingCell().getCol(),
+													   "" + passenger.getEndingCell().getRow(),
+													   "" + passenger.getEndingCell().getCol(),
+													   "" + passenger.getNumberOfPassengers() });
+		} else {
+			for (int i = 0; i < passengersTableModel.getRowCount(); i++) {
+				if (passengersTableModel.getValueAt(i, 0) == passenger.getAID().getLocalName()) {
+					Cell temp = passengers.get(passenger);
+					
+					passengers.put(passenger, passenger.getStartingCell());
+					passengersTableModel.setValueAt("" + passenger.getStartingCell().getRow(), i, 1);
+					passengersTableModel.setValueAt("" + passenger.getStartingCell().getCol(), i, 1);
+					passengersTableModel.setValueAt("" + passenger.getEndingCell().getRow(), i, 1);
+					passengersTableModel.setValueAt("" + passenger.getEndingCell().getCol(), i, 1);
+					passengersTableModel.setValueAt("" + passenger.getNumberOfPassengers(), i, 1);
+					
+					map[temp.getRow()][temp.getCol()] = 0;
+					map[passenger.getStartingCell().getRow()][passenger.getStartingCell().getCol()] = 3;
+					return;
+				}
+			}
+			
+			passengers.put(passenger, passenger.getStartingCell());
+			map[passenger.getStartingCell().getRow()][passenger.getStartingCell().getCol()] = 3;
+			passengersTableModel.addRow(new String[] { "" + passenger.getAID().getLocalName(),
+													   "" + passenger.getStartingCell().getRow(),
+													   "" + passenger.getStartingCell().getCol(),
+													   "" + passenger.getEndingCell().getRow(),
+													   "" + passenger.getEndingCell().getCol(),
+													   "" + passenger.getNumberOfPassengers() });
 		}
+		
+		updateMap();
 	}
-
-	public void updateMap(byte[][] map) {
-		displayMap(map);
+	
+	private void updateMap() {
+		displayMap();
 		mapPanel.repaint();
 	}
 }
