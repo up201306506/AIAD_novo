@@ -143,6 +143,9 @@ public class TaxiStationAgent extends Agent{
 						DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) requestMessage.getContentObject();
 						passengers.put(requestMessage.getSender(), passenger);
 
+						// Update passenger GUI information
+						updateGUI(passenger);
+
 						addBehaviour(new PassengerRequestBehaviour(myAgent, passenger));
 					} catch (UnreadableException e) {
 						e.printStackTrace();
@@ -424,13 +427,16 @@ public class TaxiStationAgent extends Agent{
 				}
 				break;
 			case ORDER_PICKUP:
+				AID taxiToOrder = null;
+
 				// If there is not any valid taxi to order the passenger's pickup
-				if(taxiScore.isEmpty()) state = SLEEP;
+				if(taxiScore.isEmpty())
+					state = SLEEP;
+				else
+					taxiToOrder = taxiScore.remove().getTaxiAID();
 
 				// Prepare request data
 				passengerData.setRequestBooleans(isSharingPolicy, isDiminishingDuration);
-
-				AID taxiToOrder = taxiScore.remove().getTaxiAID();
 
 				ACLMessage orderPickupMessage = new ACLMessage(ACLMessage.INFORM);
 				orderPickupMessage.addReceiver(taxiToOrder);
