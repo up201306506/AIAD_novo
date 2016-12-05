@@ -15,7 +15,6 @@ import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
-import jade.wrapper.ControllerException;
 import jade.wrapper.StaleProxyException;
 import utils.Cell;
 import utils.DataSerializable;
@@ -24,6 +23,8 @@ public class PassengerAgent extends Agent {
 	private static final long serialVersionUID = 8180459495842676730L;
 
 	// Passenger dynamic variables
+	private DFAgentDescription dfd;
+
 	private Cell startingCell;
 	private Cell endingCell;
 	private int numberOfPassengers;
@@ -90,7 +91,7 @@ public class PassengerAgent extends Agent {
 		// --------------------------------------------
 
 		// Temporary values TODO ler dos argumentos
-		int rowI = 4, colI = 6, rowF = 0, colF = 6;
+		int rowI = 0, colI = 6, rowF = 0, colF = 3;
 		numberOfPassengers = 3;
 
 		startingCell = new Cell(rowI, colI, 0, false);
@@ -101,7 +102,7 @@ public class PassengerAgent extends Agent {
 
 		// --------------------------------------------
 		// Yellow pages
-		DFAgentDescription dfd = new DFAgentDescription();
+		dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 
 		try {
@@ -202,7 +203,7 @@ public class PassengerAgent extends Agent {
 					}
 
 					// Deletes agent
-					takeDown();
+					myAgent.doDelete();
 				}else{
 					block();
 				}
@@ -221,23 +222,15 @@ public class PassengerAgent extends Agent {
 		takedownMessage.setConversationId("takedown-passenger");
 		takedownMessage.setContent("takedown");
 		send(takedownMessage);
-		// De-register from the yellow pages
+		// Deregister from the yellow pages
 		try {
-			// TODO
-			DFService.deregister(this, getAID());
+			if(DFService.search(this, dfd).length != 0)
+				DFService.deregister(this);
 		}
 		catch (FIPAException fe) {
 			fe.printStackTrace();
 		}
 		// Printout a dismissal message
 		System.out.println("=P >> " + getLocalName() + " >> Terminated");
-		// Finalizes cleanup take down
-		//super.takeDown();
-		// Kill agent
-		try {
-			getContainerController().getAgent(getLocalName()).kill();
-		} catch (ControllerException e) {
-			e.printStackTrace();
-		}
 	}
 }

@@ -18,7 +18,6 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
-import jade.wrapper.ControllerException;
 import utils.AStar;
 import utils.Cell;
 import utils.DataSerializable;
@@ -27,6 +26,8 @@ public class TaxiAgent extends Agent {
 	private static final long serialVersionUID = 163911234618964268L;
 
 	// Taxi dynamic variables
+	private DFAgentDescription dfd;
+
 	private Cell positionCell;
 	private int capacity;
 	private int maxCapacity;
@@ -92,7 +93,8 @@ public class TaxiAgent extends Agent {
 			}
 		}else{
 			System.err.println("-T >> " + getLocalName() + " >> Unexpected error receiving map");
-			takeDown();
+			// Delete agent
+			doDelete();
 		}
 
 		// --------------------------------------------
@@ -102,7 +104,7 @@ public class TaxiAgent extends Agent {
 
 		// Read from arguments
 		// Temporary values TODO ler dos argumentos
-		int row = 4, col = 0;
+		int row = 1, col = 6;
 		maxCapacity = 4;
 		capacity = maxCapacity;
 
@@ -113,7 +115,7 @@ public class TaxiAgent extends Agent {
 
 		// --------------------------------------------
 		// Yellow pages
-		DFAgentDescription dfd = new DFAgentDescription();
+		dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 
 		// Register the taxi service
@@ -238,26 +240,25 @@ public class TaxiAgent extends Agent {
 		takedownMessage.setConversationId("takedown-taxi");
 		takedownMessage.setContent("takedown");
 		send(takedownMessage);
+		// Deregister from the yellow pages
+		try {
+			if(DFService.search(this, dfd).length != 0)
+				DFService.deregister(this);
+		}
+		catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
 		// Printout a dismissal message
 		System.out.println("-T >> " + getLocalName() + " >> Terminated");
-		// Finalizes cleanup take down
-		super.takeDown();
-		// Kill agent
-		try {
-			getContainerController().getAgent(getLocalName()).kill();
-		} catch (ControllerException e) {
-			e.printStackTrace();
-		}
 	}
 
 	// Functions
 	private void changeTaxiPosition(Cell nextPosition){
-		// Updates taxi position
-		positionCell = nextPosition;
-
 		// TODO debugging vvvv
 		System.out.println("From: " + positionCell + ", to: " + nextPosition);
-		System.err.println(path);
+
+		// Updates taxi position
+		positionCell = nextPosition;
 
 		// Passengers to remove
 		ArrayList<DataSerializable.PassengerData> passengersToRemove = new ArrayList<>();
@@ -305,7 +306,7 @@ public class TaxiAgent extends Agent {
 			}
 		}
 
-		// Remove delivered passenger from travelling passengers
+		// Remove delivered passenger from traveling passengers
 		for(DataSerializable.PassengerData passenger : passengersToRemove)
 			travellingPassengers.remove(passenger);
 	}
@@ -457,8 +458,6 @@ public class TaxiAgent extends Agent {
 				// Verifies that the next cell is initialized
 				if(nextCell != null){
 					// Waits the duration of the cell
-					System.err.println(positionCell + ", " + positionCell.getDuration());
-
 					myAgent.addBehaviour(new WakerBehaviour(myAgent, positionCell.getDuration()) {
 						private static final long serialVersionUID = 7806259233409706677L;
 
