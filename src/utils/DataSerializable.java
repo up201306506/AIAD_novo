@@ -16,6 +16,8 @@ public class DataSerializable {
 		private Cell endingCell;
 		private int numberOfPassengers;
 
+		private boolean wasPickedUp;
+
 		// Station process conditions
 		private boolean isSharingPolicy;
 		private boolean isDiminishingDuration;
@@ -26,6 +28,8 @@ public class DataSerializable {
 			this.startingCell = startingCell;
 			this.endingCell = endingCell;
 			this.numberOfPassengers = numberOfPassengers;
+
+			this.wasPickedUp = false;
 		}
 
 		// Getters and setters
@@ -45,12 +49,24 @@ public class DataSerializable {
 			return numberOfPassengers;
 		}
 
+		public boolean wasPickedUp(){
+			return wasPickedUp;
+		}
+
 		public boolean isSharingPolicy(){
 			return isSharingPolicy;
 		}
 
 		public boolean isDiminishingDuration(){
 			return isDiminishingDuration;
+		}
+
+		public void setNumberOfPassengers(int numberOfPassengersTravelled){
+			this.numberOfPassengers = numberOfPassengersTravelled;
+		}
+
+		public void flagPickUp(){
+			this.wasPickedUp = true;
 		}
 
 		public void setRequestBooleans(boolean isSharingPolicy, boolean isDiminishingDuration){

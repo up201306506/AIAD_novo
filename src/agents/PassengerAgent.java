@@ -5,6 +5,7 @@ import java.util.HashMap;
 
 import jade.core.AID;
 import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -12,6 +13,9 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
+import jade.wrapper.AgentController;
+import jade.wrapper.ContainerController;
+import jade.wrapper.StaleProxyException;
 import utils.Cell;
 import utils.DataSerializable;
 
@@ -129,11 +133,103 @@ public class PassengerAgent extends Agent {
 		System.out.println("=P >> " + getLocalName() + " >> State is: I: "
 				+ startingCell.toString() + " | F: " + endingCell.toString()
 				+ " | N - " + numberOfPassengers);
+
+		// --------------------------------------------
+		// Behaviours
+		// Waits for pick up
+		CyclicBehaviour waitForPickUpBehaviour = new CyclicBehaviour(this) {
+			private static final long serialVersionUID = 8831324489911981757L;
+
+			@Override
+			public void action() {
+				// Defines the message template to receive
+				MessageTemplate messageTemplate = MessageTemplate.and(
+						MessageTemplate.MatchPerformative(ACLMessage.INFORM),
+						MessageTemplate.MatchConversationId("picking-passenger"));
+				ACLMessage pickingMessage = myAgent.receive(messageTemplate);
+				if(pickingMessage != null){
+					// Taxi has no capacity to travel all number of passengers
+					if(Integer.parseInt(pickingMessage.getContent()) != 0){
+						// Decreases number of passengers to travel
+						numberOfPassengers -= Integer.parseInt(pickingMessage.getContent());
+						// Args of new agent
+						// TODO
+						String newAgentArgs = "row col lalalala";
+						Object[] args = newAgentArgs.split(" "); // TODO deve dar erro
+						// Create new passenger with same information but number of passengers
+						ContainerController cc = getContainerController();
+						AgentController ac = null;
+						try {
+							ac = cc.createNewAgent(getLocalName() + pickingMessage.getContent(), "agents.PassengerAgent" , args);
+							ac.start();
+						} catch (StaleProxyException e) {
+							e.printStackTrace();
+						}
+					}
+
+					// Inform station that this passenger was picked up
+					ACLMessage pickedInformMessage = new ACLMessage(ACLMessage.INFORM);
+					pickedInformMessage.addReceiver(stationAID);
+					pickedInformMessage.setConversationId("picked-passenger");
+					pickedInformMessage.setContent("" + numberOfPassengers);
+					send(pickedInformMessage);
+				}else{
+					block();
+				}
+			}
+		};
+
+		// Waits for finished traveling
+		CyclicBehaviour waitForFinishBehaviour = new CyclicBehaviour(this) {
+			private static final long serialVersionUID = -1506263584532711286L;
+
+			@Override
+			public void action() {
+				// Defines the message template to receive
+				MessageTemplate messageTemplate = MessageTemplate.and(
+						MessageTemplate.MatchPerformative(ACLMessage.INFORM),
+						MessageTemplate.MatchConversationId("delivering-passenger"));
+				ACLMessage finishedTravelMessage = myAgent.receive(messageTemplate);
+				if(finishedTravelMessage != null){
+					// Verifies content
+					if(!finishedTravelMessage.getContent().equals("delivered")){
+						try{
+							throw new Exception("=P >> " + getLocalName() + " >> Received unexpected message");
+						}catch(Exception e){
+							System.err.println(e.getMessage());
+						}
+					}
+
+					// Deletes agent
+					takeDown();
+				}else{
+					block();
+				}
+			}
+		};
+
+		addBehaviour(waitForPickUpBehaviour);
+		addBehaviour(waitForFinishBehaviour);
 	}
 
 	@Override
 	protected void takeDown() {
-		// TODO
+		// Informs station about take down
+		ACLMessage takedownMessage = new ACLMessage(ACLMessage.CANCEL);
+		takedownMessage.addReceiver(stationAID);
+		takedownMessage.setConversationId("takedown-passenger");
+		takedownMessage.setContent("takedown");
+		send(takedownMessage);
+		// De-register from the yellow pages
+		try {
+			DFService.deregister(this);
+		}
+		catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+		// Printout a dismissal message
 		System.out.println("=P >> " + getLocalName() + " >> Terminated");
+		// Finalizes cleanup take down
+		super.takeDown();
 	}
 }

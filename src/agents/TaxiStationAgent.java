@@ -28,6 +28,7 @@ public class TaxiStationAgent extends Agent{
 	private boolean isDiminishingDuration;
 
 	// Variables
+	private MapGUI mapGUI;
 	private HashMap<Cell, Cell> cellMap;
 
 	// Variable holders
@@ -65,7 +66,7 @@ public class TaxiStationAgent extends Agent{
 		isDiminishingDuration = false;
 
 		// Initializes GUI
-		final MapGUI mapGUI = new MapGUI();
+		mapGUI = new MapGUI();
 		cellMap = Cell.mapToCellMap(mapGUI.getMap(), mapGUI.getDurationMap());
 
 		taxis = new HashMap<>();
@@ -181,24 +182,91 @@ public class TaxiStationAgent extends Agent{
 			}
 		};
 
+		// Receive picked passengers information
+		CyclicBehaviour receivePickedPassengerBehaviour = new CyclicBehaviour(this) {
+			private static final long serialVersionUID = -1287013062120065420L;
+
+			@Override
+			public void action() {
+				// Defines the message template to receive
+				MessageTemplate messageTemplate = MessageTemplate.and(
+						MessageTemplate.MatchPerformative(ACLMessage.INFORM),
+						MessageTemplate.MatchConversationId("picked-passenger"));
+				ACLMessage pickedPassengerMessage = myAgent.receive(messageTemplate);
+				if(pickedPassengerMessage != null){
+					// Updates number of passengers picked up
+					passengers.get(
+							pickedPassengerMessage.getSender())
+					.setNumberOfPassengers(Integer.parseInt(pickedPassengerMessage.getContent()));
+					// Flags passenger as picked up
+					passengers.get(pickedPassengerMessage.getSender()).flagPickUp();
+				}else{
+					block();
+				}
+			}
+		};
+
+		// Receive takedowns information
+		CyclicBehaviour receiveTakedownBehaviour = new CyclicBehaviour(this) {
+			private static final long serialVersionUID = 2733773044748772943L;
+
+			@Override
+			public void action() {
+				// Defines the message template to receive
+				MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.CANCEL);
+				ACLMessage takedownMessage = myAgent.receive(messageTemplate);
+				if(takedownMessage != null){
+					// Verifies content
+					if(!takedownMessage.getContent().equals("delivered")){
+						try{
+							throw new Exception("#S >> " + getLocalName() + " >> Unexpected message handling takedowns");
+						}catch(Exception e){
+							System.err.println(e.getMessage());
+						}
+					}
+
+					// Updates agent tables
+					if(takedownMessage.getContent().equals("takedown-passenger")){
+						// Deletes passenger from table
+						passengers.remove(takedownMessage.getSender());
+					}else if(takedownMessage.getContent().equals("takedown-taxi")){
+						// Deletes taxi from table
+						taxis.remove(takedownMessage.getSender());
+					}else{
+						try{
+							throw new Exception("#S >> " + getLocalName() + " >> Unexpected message handling takedowns");
+						}catch(Exception e){
+							System.err.println(e.getMessage());
+						}
+					}
+				}else{
+					block();
+				}
+			}
+		};
+
 		addBehaviour(mapRequestsBehaviour);
 		addBehaviour(receiveRequestsBehaviour);
 		addBehaviour(receiveTaxiPositionInformationBehaviour);
+		addBehaviour(receivePickedPassengerBehaviour);
+		addBehaviour(receiveTakedownBehaviour);
 	}
 
 	@Override
 	protected void takeDown() {
-		// TODO
-
-		// Deregister from yellow pages
+		// De-register from the yellow pages
 		try {
 			DFService.deregister(this);
-		} catch (Exception e) {
-			System.out.println("#S >> " + getLocalName() + " >> DFService deregister exception");
-			e.printStackTrace();
 		}
-
+		catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+		// Disposes GUI
+		mapGUI.dispose();
+		// Printout a dismissal message
 		System.out.println("#S >> " + getLocalName() + " >> Terminated");
+		// Finalizes cleanup take down
+		super.takeDown();
 	}
 
 	// Functions
@@ -210,7 +278,7 @@ public class TaxiStationAgent extends Agent{
 	}
 
 	// --------------------------------------------
-	// Extended behaviours ------------------------
+	// Extended behaviours
 	// Process passengers requests
 	private class PassengerRequestBehaviour extends Behaviour{
 		private static final long serialVersionUID = -1143521338604148943L;

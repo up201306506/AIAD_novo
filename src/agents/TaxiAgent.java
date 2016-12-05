@@ -207,14 +207,6 @@ public class TaxiAgent extends Agent {
 							// Add this path to current path stack
 							path = AStar.addStack(path, pathToPassenger);
 
-							// If number of passengers to pickup is inferior to taxi maximal capacity
-							/*if(passenger.getNumberOfPassengers() <= maxCapacity){
-								// Decrements taxi capacity
-								capacity -= passenger.getNumberOfPassengers();
-							}else{
-								// TODO
-							}*/
-
 							// Saves important checkpoints for notifications
 							travellingPassengers.add(passenger);
 
@@ -238,8 +230,23 @@ public class TaxiAgent extends Agent {
 
 	@Override
 	protected void takeDown() {
-		// TODO
+		// Informs station about take down
+		ACLMessage takedownMessage = new ACLMessage(ACLMessage.CANCEL);
+		takedownMessage.addReceiver(stationAID);
+		takedownMessage.setConversationId("takedown-taxi");
+		takedownMessage.setContent("takedown");
+		send(takedownMessage);
+		// De-register from the yellow pages
+		try {
+			DFService.deregister(this);
+		}
+		catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+		// Printout a dismissal message
 		System.out.println("-T >> " + getLocalName() + " >> Terminated");
+		// Finalizes cleanup take down
+		super.takeDown();
 	}
 
 	// Functions
@@ -251,14 +258,55 @@ public class TaxiAgent extends Agent {
 		System.out.println("From: " + positionCell + ", to: " + nextPosition);
 		System.err.println(path);
 
-		// Checks if any passenger was picked up or travelled
+		// Passengers to remove
+		ArrayList<DataSerializable.PassengerData> passengersToRemove = new ArrayList<>();
+
+		// Checks if any passenger was picked up or traveled
 		for(DataSerializable.PassengerData passenger : travellingPassengers){
 			if(passenger.getStartingCell().equals(positionCell)){ // If taxi is picking up passenger
-				// TODO
-			}else if(passenger.getEndingCell().equals(positionCell)){
+				int numberOfPassengersToTravel;
+				int numberOfPassengersLeftBehind;
 
+				// Number of passengers to travel
+				if(passenger.getNumberOfPassengers() <= capacity){
+					numberOfPassengersToTravel = passenger.getNumberOfPassengers();
+					numberOfPassengersLeftBehind = 0;
+					capacity -= numberOfPassengersToTravel;
+				}else{
+					numberOfPassengersToTravel = capacity;
+					numberOfPassengersLeftBehind = passenger.getNumberOfPassengers() - numberOfPassengersToTravel;
+					capacity = 0;
+				}
+
+				// Updates number of passengers traveled
+				passenger.setNumberOfPassengers(numberOfPassengersToTravel);
+				// Flags passenger pickup
+				passenger.flagPickUp();
+
+				// Informs passenger that taxi will pick up
+				ACLMessage pickupPassengerMessage = new ACLMessage(ACLMessage.INFORM);
+				pickupPassengerMessage.addReceiver(passenger.getAID());
+				pickupPassengerMessage.setConversationId("picking-passenger");
+				pickupPassengerMessage.setContent("" + numberOfPassengersLeftBehind);
+				send(pickupPassengerMessage);
+			}else if(passenger.getEndingCell().equals(positionCell)){ // If taxi is delivering a passenger
+				// Informs passenger that taxi just traveled the passenger
+				ACLMessage deliveredPassenger = new ACLMessage(ACLMessage.INFORM);
+				deliveredPassenger.addReceiver(passenger.getAID());
+				deliveredPassenger.setConversationId("delivering-passenger");
+				deliveredPassenger.setContent("delivered");
+				send(deliveredPassenger);
+
+				// Remove passenger from traveling passengers variable
+				passengersToRemove.add(passenger);
+				// Free taxi capacity spaces
+				capacity += passenger.getNumberOfPassengers();
 			}
 		}
+
+		// Remove delivered passenger from travelling passengers
+		for(DataSerializable.PassengerData passenger : passengersToRemove)
+			travellingPassengers.remove(passenger);
 	}
 
 	// --------------------------------------------
