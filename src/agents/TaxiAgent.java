@@ -104,10 +104,18 @@ public class TaxiAgent extends Agent {
 
 		// Read from arguments
 		// Temporary values TODO ler dos argumentos
-		int row = 1, col = 6;
-		maxCapacity = 4;
+		int row = 0, col = 0;
+		
+		Object[] args = getArguments();
+		if (args != null && args.length > 0) {
+			
+		} else {
+			row = 1;
+			col = 6;
+			maxCapacity = 4;
+		}
+		
 		capacity = maxCapacity;
-
 		positionCell = new Cell(row, col, 0, false);
 
 		// Create taxi agent

@@ -275,11 +275,13 @@ public class TaxiStationAgent extends Agent{
 	private void updateGUI(DataSerializable.TaxiData taxi){
 		// Updates GUI taxi information
 		mapGUI.updateTaxi(taxi);
+		mapGUI.displayMap();
 	}
 
 	private void updateGUI(DataSerializable.PassengerData passenger){
 		// Updates GUI passenger information
 		mapGUI.updatePassenger(passenger);
+		mapGUI.displayMap();
 	}
 
 	// --------------------------------------------
