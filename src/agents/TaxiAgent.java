@@ -41,6 +41,8 @@ public class TaxiAgent extends Agent {
 
 	private ArrayList<DataSerializable.PassengerData> travellingPassengers;
 
+	private MoveBehaviour currentMoveBehaviour;
+
 	protected void setup(){
 		// Search for taxi station
 		DFAgentDescription dfAgentDescription = new DFAgentDescription();
@@ -104,7 +106,7 @@ public class TaxiAgent extends Agent {
 
 		// Read from arguments
 		// Temporary values TODO ler dos argumentos
-		int row = 1, col = 6;
+		int row = 4, col = 1;
 		maxCapacity = 4;
 		capacity = maxCapacity;
 
@@ -181,41 +183,40 @@ public class TaxiAgent extends Agent {
 
 						// Re-verifies order
 						if(!passenger.isSharingPolicy()){ // Station has no sharing policy
-							// Taxi is already taken by another passenger
-							if(travellingPassengers.size() != 0){
+							if(travellingPassengers.size() > 0){ // Taxi is already taken by another passenger
 								// Refuses order
 								ACLMessage refuseOrder = orderMessage.createReply();
 								refuseOrder.setPerformative(ACLMessage.DISCONFIRM);
 								refuseOrder.setContent("refuse-order");
 								myAgent.send(refuseOrder);
+							}else{ // Taxi is free to take passengers
+								// Saves important checkpoints for notifications
+								travellingPassengers.add(passenger);
+
+								// Accepts order
+								ACLMessage acceptsOrder = orderMessage.createReply();
+								acceptsOrder.setPerformative(ACLMessage.CONFIRM);
+								acceptsOrder.setContent("accept-order");
+								myAgent.send(acceptsOrder);
+
+								// Calculates the path to travel the passenger
+								Stack<Cell> pathToTravelPassenger = AStar.GetMoveOrders( // Adds the path to the existent one
+										AStar.AStarAlgorithm(cellMap, passenger.getStartingCell(), passenger.getEndingCell(), true));
+
+								// Calculates path from current position to passenger starting cell
+								Stack<Cell> pathToPassenger = AStar.GetMoveOrders(
+										AStar.AStarAlgorithm(cellMap, positionCell, passenger.getStartingCell(), true));
+
+								// Path to travel the passenger is the bottom of the path stack
+								path = pathToTravelPassenger;
+
+								// Add this path to current path stack
+								path = AStar.addStack(path, pathToPassenger);
+
+								// Makes the Taxi move
+								currentMoveBehaviour = new MoveBehaviour(myAgent);
+								addBehaviour(currentMoveBehaviour);
 							}
-
-							// Accepts order
-							ACLMessage acceptsOrder = orderMessage.createReply();
-							acceptsOrder.setPerformative(ACLMessage.CONFIRM);
-							acceptsOrder.setContent("accept-order");
-							myAgent.send(acceptsOrder);
-
-							// Calculates the path to travel the passenger
-							Stack<Cell> pathToTravelPassenger = AStar.GetMoveOrders( // Adds the path to the existent one
-									AStar.AStarAlgorithm(cellMap, passenger.getStartingCell(), passenger.getEndingCell(), true));
-
-							// Calculates path from current position to passenger starting cell
-							Stack<Cell> pathToPassenger = AStar.GetMoveOrders(
-									AStar.AStarAlgorithm(cellMap, positionCell, passenger.getStartingCell(), true));
-
-							// Path to travel the passenger is the bottom of the path stack
-							path = pathToTravelPassenger;
-
-							// Add this path to current path stack
-							path = AStar.addStack(path, pathToPassenger);
-
-							// Saves important checkpoints for notifications
-							travellingPassengers.add(passenger);
-
-							// Makes the Taxi move
-							myAgent.removeBehaviour(new MoveBehaviour(null));
-							addBehaviour(new MoveBehaviour(myAgent));
 						}else{ // Station has sharing policy
 							// TODO
 						}
@@ -356,7 +357,7 @@ public class TaxiAgent extends Agent {
 			case PROCESS_PROPOSE:
 				if(!passengerData.isSharingPolicy()){ // Station has no sharing policy
 					// Taxi is already taken by another passenger
-					if(capacity != maxCapacity){
+					if(travellingPassengers.size() != 0){
 						state = REFUSE_PROPOSE;
 						break;
 					}
@@ -410,14 +411,21 @@ public class TaxiAgent extends Agent {
 		private static final String DONE_MOVING = "DONE_MOVING";
 
 		// Variables
+		private long uniqueValue;
+
 		private Cell nextCell;
 
 		// Constructor
 		public MoveBehaviour(Agent myAgent){
 			super(myAgent);
 
+			// Set unique value
+			uniqueValue = System.currentTimeMillis();
+
+			// Set initial variables
 			nextCell = null;
 
+			// Set initial state
 			state = STATUS;
 		}
 
@@ -448,7 +456,7 @@ public class TaxiAgent extends Agent {
 				}
 
 				// Retrieves next cell taxi has to travel to
-				nextCell = path.pop();
+				nextCell = path.peek();
 
 				// Verifies that next cell is an adjacent cell
 				if(positionCell.isAdjacent(nextCell)){
@@ -473,25 +481,31 @@ public class TaxiAgent extends Agent {
 
 						@Override
 						protected void handleElapsedTimeout() {
-							// Updates taxi position
-							changeTaxiPosition(nextCell);
+							if(nextCell.equals(path.peek())){
+								// Updates path
+								path.pop();
 
-							// Send information to taxi station
-							ACLMessage informPositionMessage = new ACLMessage(ACLMessage.INFORM);
-							informPositionMessage.addReceiver(stationAID);
-							informPositionMessage.setConversationId("inform-state");
-							try {
-								informPositionMessage.setContentObject(
-										new DataSerializable.TaxiData(myAgent.getAID(), positionCell, capacity));
-								informPositionMessage.setLanguage("JavaSerialization");
-							} catch (IOException e) {
-								e.printStackTrace();
+								// Updates taxi position
+								changeTaxiPosition(nextCell);
+
+								// Send information to taxi station
+								ACLMessage informPositionMessage = new ACLMessage(ACLMessage.INFORM);
+								informPositionMessage.addReceiver(stationAID);
+								informPositionMessage.setConversationId("inform-state");
+								try {
+									informPositionMessage.setContentObject(
+											new DataSerializable.TaxiData(myAgent.getAID(), positionCell, capacity));
+									informPositionMessage.setLanguage("JavaSerialization");
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
+
+								myAgent.send(informPositionMessage);
+
+								// Adds the execution of this behaviour again
+								currentMoveBehaviour = new MoveBehaviour(myAgent);
+								myAgent.addBehaviour(currentMoveBehaviour);
 							}
-
-							myAgent.send(informPositionMessage);
-
-							// Adds the execution of this behaviour again
-							myAgent.addBehaviour(new MoveBehaviour(myAgent));
 						}
 					});
 				}else{
@@ -512,15 +526,7 @@ public class TaxiAgent extends Agent {
 
 		@Override
 		public boolean done() {
-			return (state == DONE_MOVING);
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if(obj == this) return true;
-
-			if(!(obj instanceof MoveBehaviour)) return false;
-			else return true;
+			return ((state == DONE_MOVING) || (this.uniqueValue < currentMoveBehaviour.uniqueValue));
 		}
 	}
 }

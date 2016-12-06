@@ -264,10 +264,10 @@ public class MapGUI extends JFrame {
 
 					passengers.put(passenger, passenger.getStartingCell());
 					passengersTableModel.setValueAt("" + passenger.getStartingCell().getRow(), i, 1);
-					passengersTableModel.setValueAt("" + passenger.getStartingCell().getCol(), i, 1);
-					passengersTableModel.setValueAt("" + passenger.getEndingCell().getRow(), i, 1);
-					passengersTableModel.setValueAt("" + passenger.getEndingCell().getCol(), i, 1);
-					passengersTableModel.setValueAt("" + passenger.getNumberOfPassengers(), i, 1);
+					passengersTableModel.setValueAt("" + passenger.getStartingCell().getCol(), i, 2);
+					passengersTableModel.setValueAt("" + passenger.getEndingCell().getRow(), i, 3);
+					passengersTableModel.setValueAt("" + passenger.getEndingCell().getCol(), i, 4);
+					passengersTableModel.setValueAt("" + passenger.getNumberOfPassengers(), i, 5);
 
 					updateMap(temp, passenger.getStartingCell());
 					return;

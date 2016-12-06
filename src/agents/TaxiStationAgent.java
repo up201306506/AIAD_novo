@@ -17,7 +17,6 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
-import jade.wrapper.ControllerException;
 import utils.Cell;
 import utils.DataSerializable;
 
@@ -29,6 +28,8 @@ public class TaxiStationAgent extends Agent{
 	private boolean isDiminishingDuration;
 
 	// Variables
+	private DFAgentDescription dfd;
+
 	private MapGUI mapGUI;
 	private HashMap<Cell, Cell> cellMap;
 
@@ -51,7 +52,8 @@ public class TaxiStationAgent extends Agent{
 			// Kill this station agent if there is another station agent up
 			if(searchResult.length != 0){
 				System.out.println("#S >> " + getLocalName() + " >> Terminating, found another station");
-				takeDown();
+				doDelete();
+				return;
 			}
 		} catch (FIPAException e) {
 			e.printStackTrace();
@@ -75,7 +77,7 @@ public class TaxiStationAgent extends Agent{
 
 		// --------------------------------------------
 		// Yellow pages
-		DFAgentDescription dfd = new DFAgentDescription();
+		dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 
 		// Register the station service
@@ -197,12 +199,15 @@ public class TaxiStationAgent extends Agent{
 						MessageTemplate.MatchConversationId("picked-passenger"));
 				ACLMessage pickedPassengerMessage = myAgent.receive(messageTemplate);
 				if(pickedPassengerMessage != null){
+					// Get passenger from table data
+					DataSerializable.PassengerData passenger = passengers.get(pickedPassengerMessage.getSender());
 					// Updates number of passengers picked up
-					passengers.get(
-							pickedPassengerMessage.getSender())
-					.setNumberOfPassengers(Integer.parseInt(pickedPassengerMessage.getContent()));
+					passenger.setNumberOfPassengers(Integer.parseInt(pickedPassengerMessage.getContent()));
 					// Flags passenger as picked up
-					passengers.get(pickedPassengerMessage.getSender()).flagPickUp();
+					passenger.flagPickUp();
+
+					// Update GUI passenger information
+					updateGUI(passenger);
 				}else{
 					block();
 				}
@@ -258,17 +263,10 @@ public class TaxiStationAgent extends Agent{
 	@Override
 	protected void takeDown() {
 		// Disposes GUI
-		mapGUI.dispose();
+		if(mapGUI != null)
+			mapGUI.dispose();
 		// Printout a dismissal message
 		System.out.println("#S >> " + getLocalName() + " >> Terminated");
-		// Finalizes cleanup take down
-		super.takeDown();
-		// Kill agent
-		try {
-			getContainerController().getAgent(getLocalName()).kill();
-		} catch (ControllerException e) {
-			e.printStackTrace();
-		}
 	}
 
 	// Functions
@@ -414,8 +412,13 @@ public class TaxiStationAgent extends Agent{
 					}else if(proposalAnswer.getPerformative() == ACLMessage.REJECT_PROPOSAL){ // If it was refuse proposal
 						if(!proposalAnswer.getContent().equals("refuse-pickup"))
 							System.out.println("#S >> " + getLocalName() + " >> Received unexpected message");
-					}else
-						System.out.println("#S >> " + getLocalName() + " >> Received unexpected message");
+					}else{
+						try{
+							throw new Exception("#S >> " + getLocalName() + " >> Received unexpected message");
+						}catch(Exception e){
+							System.err.println(e.getMessage());
+						}
+					}
 
 					// Increment the value of replies counter
 					numberOfTaxisReplies++;
@@ -430,9 +433,10 @@ public class TaxiStationAgent extends Agent{
 				AID taxiToOrder = null;
 
 				// If there is not any valid taxi to order the passenger's pickup
-				if(taxiScore.isEmpty())
+				if(taxiScore.isEmpty()){
 					state = SLEEP;
-				else
+					break;
+				}else
 					taxiToOrder = taxiScore.remove().getTaxiAID();
 
 				// Prepare request data
@@ -483,8 +487,8 @@ public class TaxiStationAgent extends Agent{
 				}
 				break;
 			case SLEEP:
-				// Resets this behaviour after 30 seconds
-				myAgent.addBehaviour(new WakerBehaviour(myAgent, 30000) {
+				// Resets this behaviour after 10 seconds
+				myAgent.addBehaviour(new WakerBehaviour(myAgent, 20000) {
 					private static final long serialVersionUID = -3004190994251093897L;
 
 					@Override
