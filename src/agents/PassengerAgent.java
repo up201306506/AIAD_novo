@@ -91,8 +91,8 @@ public class PassengerAgent extends Agent {
 		// --------------------------------------------
 
 		// Temporary values TODO ler dos argumentos
-		int rowI = 0, colI = 6, rowF = 0, colF = 3;
-		numberOfPassengers = 3;
+		int rowI = 4, colI = 6, rowF = 0, colF = 6;
+		numberOfPassengers = 5;
 
 		startingCell = new Cell(rowI, colI, 0, false);
 		endingCell = new Cell(rowF, colF, 0, false);

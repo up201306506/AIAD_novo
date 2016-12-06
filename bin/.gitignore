@@ -2,9 +2,15 @@
 /utils/
 <<<<<<< HEAD
 /gui/
+<<<<<<< HEAD
 =======
 /agents/
 /application/
 /test/
 /tools/
 >>>>>>> Xano
+=======
+/application/
+/test/
+/tools/
+>>>>>>> work
