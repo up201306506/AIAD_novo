@@ -227,7 +227,6 @@ public class MapGUI extends JFrame {
 			for (int i = 0; i < taxisTableModel.getRowCount(); i++) {
 				if (taxisTableModel.getValueAt(i, 0).equals(taxi.getAID().getLocalName())) {
 					Cell temp = taxis.get(taxi);
-					System.out.println(temp);
 					
 					taxis.put(taxi, taxi.getPosition());
 					taxisTableModel.setValueAt("" + taxi.getPosition().getRow(), i, 1);
