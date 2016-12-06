@@ -63,10 +63,10 @@ public class MapGUI extends JFrame {
 		loadMap();
 		loadTimes();
 		loadImages();
-		
+
 		taxis = new HashMap<>();
 		passengers = new HashMap<>();
-		
+
 		gbc = new GridBagConstraints();
 
 		taxisTable = new JTable();
@@ -227,18 +227,17 @@ public class MapGUI extends JFrame {
 			for (int i = 0; i < taxisTableModel.getRowCount(); i++) {
 				if (taxisTableModel.getValueAt(i, 0).equals(taxi.getAID().getLocalName())) {
 					Cell temp = taxis.get(taxi);
-					System.out.println(temp);
-					
+
 					taxis.put(taxi, taxi.getPosition());
 					taxisTableModel.setValueAt("" + taxi.getPosition().getRow(), i, 1);
 					taxisTableModel.setValueAt("" + taxi.getPosition().getCol(), i, 2);
 					taxisTableModel.setValueAt("" + taxi.getCapacity(), i, 3);
-					
+
 					updateMap(temp, taxi.getPosition());
 					return;
 				}
 			}
-			
+
 			taxis.put(taxi, taxi.getPosition());
 			taxisTableModel.addRow(new String[] { "" + taxi.getAID().getLocalName(),
 												  "" + taxi.getPosition().getRow(),
@@ -247,7 +246,7 @@ public class MapGUI extends JFrame {
 			updateMap(taxi.getPosition());
 		}
 	}
-	
+
 	public void updatePassenger(DataSerializable.PassengerData passenger) {
 		if (passengersTableModel.getRowCount() == 0) {
 			passengers.put(passenger, passenger.getStartingCell());
@@ -262,19 +261,19 @@ public class MapGUI extends JFrame {
 			for (int i = 0; i < passengersTableModel.getRowCount(); i++) {
 				if (passengersTableModel.getValueAt(i, 0).equals(passenger.getAID().getLocalName())) {
 					Cell temp = passengers.get(passenger);
-					
+
 					passengers.put(passenger, passenger.getStartingCell());
 					passengersTableModel.setValueAt("" + passenger.getStartingCell().getRow(), i, 1);
 					passengersTableModel.setValueAt("" + passenger.getStartingCell().getCol(), i, 1);
 					passengersTableModel.setValueAt("" + passenger.getEndingCell().getRow(), i, 1);
 					passengersTableModel.setValueAt("" + passenger.getEndingCell().getCol(), i, 1);
 					passengersTableModel.setValueAt("" + passenger.getNumberOfPassengers(), i, 1);
-					
+
 					updateMap(temp, passenger.getStartingCell());
 					return;
 				}
 			}
-			
+
 			passengers.put(passenger, passenger.getStartingCell());
 			passengersTableModel.addRow(new String[] { "" + passenger.getAID().getLocalName(),
 													   "" + passenger.getStartingCell().getRow(),
@@ -285,11 +284,11 @@ public class MapGUI extends JFrame {
 			updateMap(passenger.getStartingCell());
 		}
 	}
-	
+
 	private void updateMap(Cell newPos) {
 		// TODO
 	}
-	
+
 	private void updateMap(Cell previousPos, Cell newPos) {
 		// TODO
 	}

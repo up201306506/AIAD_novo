@@ -254,8 +254,8 @@ public class TaxiAgent extends Agent {
 
 	// Functions
 	private void changeTaxiPosition(Cell nextPosition){
-		// TODO debugging vvvv
-		System.out.println("From: " + positionCell + ", to: " + nextPosition);
+		// Display movement
+		System.out.println("-T >> " + getLocalName() + " >> From: " + positionCell + ", to: " + nextPosition);
 
 		// Updates taxi position
 		positionCell = nextPosition;
@@ -265,7 +265,8 @@ public class TaxiAgent extends Agent {
 
 		// Checks if any passenger was picked up or traveled
 		for(DataSerializable.PassengerData passenger : travellingPassengers){
-			if(passenger.getStartingCell().equals(positionCell)){ // If taxi is picking up passenger
+			// If taxi is picking up passenger
+			if(passenger.getStartingCell().equals(positionCell)){
 				int numberOfPassengersToTravel;
 				int numberOfPassengersLeftBehind;
 
@@ -285,24 +286,33 @@ public class TaxiAgent extends Agent {
 				// Flags passenger pickup
 				passenger.flagPickUp();
 
+				// Displays that this taxi picked up a passenger
+				System.out.println("-T >> " + getLocalName() + " >> Just picked passenger: " + passenger.getAID().getLocalName());
+
 				// Informs passenger that taxi will pick up
 				ACLMessage pickupPassengerMessage = new ACLMessage(ACLMessage.INFORM);
 				pickupPassengerMessage.addReceiver(passenger.getAID());
 				pickupPassengerMessage.setConversationId("picking-passenger");
 				pickupPassengerMessage.setContent("" + numberOfPassengersLeftBehind);
 				send(pickupPassengerMessage);
-			}else if(passenger.getEndingCell().equals(positionCell)){ // If taxi is delivering a passenger
+
+				// If taxi is delivering a passenger
+			}else if(passenger.wasPickedUp() // If passenger was already picked up
+					&& passenger.getEndingCell().equals(positionCell)){ // If passenger is at destination
+				// Remove passenger from traveling passengers variable
+				passengersToRemove.add(passenger);
+				// Free taxi capacity spaces
+				capacity += passenger.getNumberOfPassengers();
+
+				// Displays that this taxi delivered a passenger
+				System.out.println("-T >> " + getLocalName() + " >> Just delivered passenger: " + passenger.getAID().getLocalName());
+
 				// Informs passenger that taxi just traveled the passenger
 				ACLMessage deliveredPassenger = new ACLMessage(ACLMessage.INFORM);
 				deliveredPassenger.addReceiver(passenger.getAID());
 				deliveredPassenger.setConversationId("delivering-passenger");
 				deliveredPassenger.setContent("delivered");
 				send(deliveredPassenger);
-
-				// Remove passenger from traveling passengers variable
-				passengersToRemove.add(passenger);
-				// Free taxi capacity spaces
-				capacity += passenger.getNumberOfPassengers();
 			}
 		}
 

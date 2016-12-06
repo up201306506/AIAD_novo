@@ -169,6 +169,9 @@ public class PassengerAgent extends Agent {
 						}
 					}
 
+					// Displays that this passenger was picked up by a taxi
+					System.out.println("=P >> " + getLocalName() + " >> Was picked up by taxi: " + pickingMessage.getSender().getLocalName());
+
 					// Inform station that this passenger was picked up
 					ACLMessage pickedInformMessage = new ACLMessage(ACLMessage.INFORM);
 					pickedInformMessage.addReceiver(stationAID);
@@ -201,6 +204,9 @@ public class PassengerAgent extends Agent {
 							System.err.println(e.getMessage());
 						}
 					}
+
+					// Displays that this passenger was delivered by a taxi
+					System.out.println("=P >> " + getLocalName() + " >> Was delivered by taxi: " + finishedTravelMessage.getSender().getLocalName());
 
 					// Deletes agent
 					myAgent.doDelete();
