@@ -1,1 +1,22 @@
+<<<<<<< HEAD
 /application/
+=======
+/gui/
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+/agents/
+/application/
+/test/
+/tools/
+>>>>>>> Xano
+=======
+/application/
+/test/
+/tools/
+>>>>>>> work
+=======
+/agents/
+>>>>>>> Xano
+/utils/
+>>>>>>> 0263fd76fb69fcbb919bb7e92718fa8d369e3188
