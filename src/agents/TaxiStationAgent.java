@@ -63,10 +63,36 @@ public class TaxiStationAgent extends Agent{
 		// Variables
 		System.out.println("#S >> " + getLocalName() + " >> Just initialized");
 
-		// TODO ler dos argumentos
-
-		isSharingPolicy = false;
-		isDiminishingDuration = false;
+		// --------------------------------------------
+		// Read from arguments
+		Object[] args = getArguments();
+		if (args != null && args.length > 0) {
+			if (args.length == 2) {
+				String[] stationArgs = new String[args.length];
+				
+				for (int i = 0; i < args.length; i++)
+					stationArgs[i] = args[i].toString();
+				
+				if (stationArgs[0].equals("-sharing") && stationArgs[1].equals("-duration")) {
+					isSharingPolicy = true;
+					isDiminishingDuration = true;
+				} else if (stationArgs[0].equals("-sharing") && stationArgs[1].equals("-distance")) {
+					isSharingPolicy = true;
+					isDiminishingDuration = false;
+				} else {
+					System.out.println("#S >> " + getLocalName() + " >> Invalid arguments");
+					doDelete();
+					return;
+				}
+			} else {
+				System.out.println("#S >> " + getLocalName() + " >> Wrong number of arguments");
+				doDelete();
+				return;
+			}
+		} else {
+			isSharingPolicy = false;
+			isDiminishingDuration = false;
+		}
 
 		// Initializes GUI
 		mapGUI = new MapGUI();
