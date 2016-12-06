@@ -1,7 +1,5 @@
-/agents/
-/utils/
-<<<<<<< HEAD
 /gui/
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
 /agents/
@@ -14,3 +12,7 @@
 /test/
 /tools/
 >>>>>>> work
+=======
+/agents/
+>>>>>>> Xano
+/utils/
