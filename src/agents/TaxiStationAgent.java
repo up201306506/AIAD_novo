@@ -69,10 +69,10 @@ public class TaxiStationAgent extends Agent{
 		if (args != null && args.length > 0) {
 			if (args.length == 2) {
 				String[] stationArgs = new String[args.length];
-				
+
 				for (int i = 0; i < args.length; i++)
 					stationArgs[i] = args[i].toString();
-				
+
 				if (stationArgs[0].equals("-sharing") && stationArgs[1].equals("-duration")) {
 					isSharingPolicy = true;
 					isDiminishingDuration = true;
@@ -291,6 +291,14 @@ public class TaxiStationAgent extends Agent{
 		// Disposes GUI
 		if(mapGUI != null)
 			mapGUI.dispose();
+		// Deregister from the yellow pages
+		try {
+			if(DFService.search(this, dfd).length != 0 && mapGUI != null)
+				DFService.deregister(this);
+		}
+		catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
 		// Printout a dismissal message
 		System.out.println("#S >> " + getLocalName() + " >> Terminated");
 	}
@@ -515,8 +523,8 @@ public class TaxiStationAgent extends Agent{
 				}
 				break;
 			case SLEEP:
-				// Resets this behaviour after 10 seconds
-				myAgent.addBehaviour(new WakerBehaviour(myAgent, 20000) {
+				// Resets this behaviour after 45 seconds
+				myAgent.addBehaviour(new WakerBehaviour(myAgent, 45000) {
 					private static final long serialVersionUID = -3004190994251093897L;
 
 					@Override

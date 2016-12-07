@@ -100,7 +100,6 @@ public class MapGUI extends JFrame {
 		tabbedPanel.addTab("Tables View", tablesPanel);
 		tabbedPanel.addTab("Map View", mapPanel);
 
-		setResizable(true);
 		setContentPane(tabbedPanel);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		setSize(new Dimension(map.length * CELL_SIZE, map[0].length * CELL_SIZE));

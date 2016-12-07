@@ -91,14 +91,14 @@ public class PassengerAgent extends Agent {
 		// --------------------------------------------
 		// Read from arguments
 		int rowI = 0, colI = 0, rowF = 0, colF = 0;
-		
+
 		Object[] args = getArguments();
 		if (args != null && args.length > 0) {
 			String[] passArgs = new String[args.length];
-			
+
 			for (int i = 0; i < args.length; i++)
 				passArgs[i] = args[i].toString();
-			
+
 			if (cellMap.get(new Cell(Integer.parseInt(passArgs[0]), Integer.parseInt(passArgs[1]), 0, false)).isWall()) {
 				System.out.println("-T >> " + getLocalName() + " >> Invalid initial row and/or column placement");
 				doDelete();
@@ -125,7 +125,7 @@ public class PassengerAgent extends Agent {
 			colI = 6;
 			rowF = 0;
 			colF = 6;
-			numberOfPassengers = 5;
+			numberOfPassengers = 1;
 		}
 
 		startingCell = new Cell(rowI, colI, 0, false);
@@ -189,9 +189,9 @@ public class PassengerAgent extends Agent {
 						// Decreases number of passengers to travel
 						numberOfPassengers -= Integer.parseInt(pickingMessage.getContent());
 						// Args of new agent
-						// TODO
-						String newAgentArgs = "row col lalalala";
-						Object[] args = newAgentArgs.split(" "); // TODO deve dar erro
+						String newAgentArgs = "" + startingCell.getRow() + "," + startingCell.getCol() + ","
+								+ endingCell.getRow() + "," + endingCell.getCol() + "," + pickingMessage.getContent();
+						Object[] args = newAgentArgs.split(",");
 						// Create new passenger with same information but number of passengers
 						ContainerController cc = getContainerController();
 						AgentController ac = null;

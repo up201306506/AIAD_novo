@@ -105,17 +105,18 @@ public class TaxiAgent extends Agent {
 		travellingPassengers = new ArrayList<>(); // To hold passengers travelling
 
 		// --------------------------------------------
-				// Read from arguments
+		// Read from arguments
 		int row = 0, col = 0;
-		
+
 		Object[] args = getArguments();
 		if (args != null && args.length > 0) {
 			String[] taxiArgs = new String[args.length];
-			
+
 			for (int i = 0; i < args.length; i++)
 				taxiArgs[i] = args[i].toString();
-			
-			if (cellMap.get(new Cell(Integer.parseInt(taxiArgs[0]), Integer.parseInt(taxiArgs[1]), 0, false)).isWall()) {
+
+			Cell cellToTest = new Cell(Integer.parseInt(taxiArgs[0]), Integer.parseInt(taxiArgs[1]), 0, false);
+			if (cellMap.get(cellToTest) == null || cellMap.get(cellToTest).isWall()) {
 				System.out.println("-T >> " + getLocalName() + " >> Invalid row and/or column placement");
 				doDelete();
 				return;
@@ -131,11 +132,11 @@ public class TaxiAgent extends Agent {
 				}
 			}
 		} else {
-			row = 1;
-			col = 6;
+			row = 4;
+			col = 2;
 			maxCapacity = 4;
 		}
-		
+
 		capacity = maxCapacity;
 		positionCell = new Cell(row, col, 0, false);
 
@@ -245,7 +246,15 @@ public class TaxiAgent extends Agent {
 								addBehaviour(currentMoveBehaviour);
 							}
 						}else{ // Station has sharing policy
-							// TODO
+							if(capacity == 0){ // Taxi has no free space to take more passengers
+								// Refuses order
+								ACLMessage refuseOrder = orderMessage.createReply();
+								refuseOrder.setPerformative(ACLMessage.DISCONFIRM);
+								refuseOrder.setContent("refuse-order");
+								myAgent.send(refuseOrder);
+							}else{ // Taxi has free spaces
+								// TODO ainda nao esta feito
+							}
 						}
 					} catch (UnreadableException e) {
 						e.printStackTrace();
@@ -258,6 +267,10 @@ public class TaxiAgent extends Agent {
 
 		addBehaviour(receivePickupProposesBehaviour);
 		addBehaviour(receivePickupOrderBehaviour);
+
+		// Force the taxi to go to station position
+		currentMoveBehaviour = new MoveBehaviour(this);
+		addBehaviour(currentMoveBehaviour);
 	}
 
 	@Override
@@ -270,7 +283,7 @@ public class TaxiAgent extends Agent {
 		send(takedownMessage);
 		// Deregister from the yellow pages
 		try {
-			if(DFService.search(this, dfd).length != 0)
+			if(DFService.search(this, dfd).length != 0 && positionCell != null)
 				DFService.deregister(this);
 		}
 		catch (FIPAException fe) {
@@ -371,9 +384,11 @@ public class TaxiAgent extends Agent {
 		public StationProposesBehaviour(Agent myAgent, ACLMessage proposeMessage, DataSerializable.PassengerData passengerData){
 			super(myAgent);
 
+			// Set initial variables
 			this.proposeMessage = proposeMessage;
 			this.passengerData = passengerData;
 
+			// Set initial state
 			state = PROCESS_PROPOSE;
 		}
 
@@ -396,7 +411,27 @@ public class TaxiAgent extends Agent {
 
 					state = ACCEPT_PROPOSE;
 				}else{ // Station has sharing policy
-					// TODO
+					// Calculates the number of spacesOccupied in taxi
+					int spacesOccupied = 0;
+					for(int i = 0; i < travellingPassengers.size(); i++){
+						spacesOccupied += travellingPassengers.get(i).getNumberOfPassengers();
+					}
+
+					// Taxi has no free spaces
+					if(spacesOccupied >= maxCapacity){
+						state = REFUSE_PROPOSE;
+						break;
+					}
+
+					// TODO verify if it is advantageous
+
+
+					// Calculates the fastest path to the passenger
+					LinkedList<Cell> path = AStar.AStarAlgorithm(cellMap, positionCell, passengerData.getStartingCell(), true);
+					// Calculates the duration of the path
+					score = AStar.PathDuration(path);
+
+					state = ACCEPT_PROPOSE;
 				}
 				break;
 			case ACCEPT_PROPOSE:
