@@ -1,7 +1,6 @@
 package gui;
 
 import java.awt.Dimension;
-import java.awt.GridBagConstraints;
 import java.awt.GridLayout;
 import java.awt.Toolkit;
 import java.io.BufferedReader;
@@ -9,9 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
 
-import javax.swing.ImageIcon;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
@@ -37,23 +34,11 @@ public class MapGUI extends JFrame {
 	private String[] passengersTableColumnNames = { "Name", "iRow", "iCol", "fRow", "fCol", "Num" };
 
 	// Map View
-	private JPanel mapPanel;
-	private GridBagConstraints gbc;
-
-	// Images
-	private ImageIcon taxiImage;
-	private ImageIcon taxisImage;
-	private ImageIcon streetImage;
-	private ImageIcon centralImage;
-	private ImageIcon passTaxiImage;
-	private ImageIcon buildingImage;
-	private ImageIcon passengerImage;
-	private ImageIcon passengersImage;
+	private Canvas canvas;
 
 	// Variables
 	private byte[][] map;
 	private int[][] durationMap;
-	private byte[][] entityMap;
 	private HashMap<DataSerializable.TaxiData, Cell> taxis;
 	private HashMap<DataSerializable.PassengerData, Cell> passengers;
 
@@ -63,12 +48,11 @@ public class MapGUI extends JFrame {
 
 		loadMap();
 		loadTimes();
-		loadImages();
 
 		taxis = new HashMap<>();
 		passengers = new HashMap<>();
 
-		gbc = new GridBagConstraints();
+		canvas = new Canvas(map);
 
 		taxisTable = new JTable();
 		taxisTable.setFocusable(false);
@@ -85,11 +69,6 @@ public class MapGUI extends JFrame {
 		tablesPanel = new JPanel();
 		tablesPanel.setLayout(new GridLayout(1, 2));
 
-		mapPanel = new JPanel();
-		mapPanel.setLayout(new GridLayout(map.length, 0));
-
-		displayMap();
-
 		JScrollPane panel1 = new JScrollPane(taxisTable);
 		JScrollPane panel2 = new JScrollPane(passengersTable);
 
@@ -98,12 +77,12 @@ public class MapGUI extends JFrame {
 
 		tabbedPanel = new JTabbedPane();
 		tabbedPanel.addTab("Tables View", tablesPanel);
-		tabbedPanel.addTab("Map View", mapPanel);
+		tabbedPanel.addTab("Map View", canvas);
 
+		// setResizable(false);
 		setContentPane(tabbedPanel);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		setSize(new Dimension(map.length * CELL_SIZE, map[0].length * CELL_SIZE));
-		setMaximumSize(new Dimension(map.length * CELL_SIZE + 60, map[0].length * CELL_SIZE + 100));
 
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		int centerX = (int) screenSize.getWidth() / 2;
@@ -168,55 +147,12 @@ public class MapGUI extends JFrame {
 		}
 	}
 
-	private void loadImages() {
-		taxiImage = new ImageIcon("resources/images/taxi.png");
-		taxisImage = new ImageIcon("resources/images/taxis.png");
-		streetImage = new ImageIcon("resources/images/street.png");
-		centralImage = new ImageIcon("resources/images/central.png");
-		passTaxiImage = new ImageIcon("resources/images/passTaxi.png");
-		buildingImage = new ImageIcon("resources/images/building.png");
-		passengerImage = new ImageIcon("resources/images/passenger.png");
-		passengersImage = new ImageIcon("resources/images/passengers.png");
-	}
-
-	public void displayMap() {
-		for (int y = 0; y < map.length; y++) {
-			gbc.gridy = y;
-			for (int x = 0; x < map[y].length; x++) {
-				gbc.gridx = x;
-				switch (map[y][x]) {
-				case 0:
-					mapPanel.add(new JLabel(streetImage), gbc);
-					break;
-				case 1:
-					mapPanel.add(new JLabel(buildingImage), gbc);
-					break;
-				case 2:
-					mapPanel.add(new JLabel(taxiImage), gbc);
-					break;
-				case 3:
-					mapPanel.add(new JLabel(passengerImage), gbc);
-					break;
-				case 4:
-					mapPanel.add(new JLabel(passengersImage), gbc);
-					break;
-				case 5:
-					mapPanel.add(new JLabel(passTaxiImage), gbc);
-					break;
-				case 6:
-					mapPanel.add(new JLabel(taxisImage), gbc);
-					break;
-				case 7:
-					mapPanel.add(new JLabel(centralImage), gbc);
-					break;
-				}
-			}
-		}
-
-		mapPanel.repaint();
-	}
-
 	// Update GUI information functions
+	public void updateCanvas() {
+		canvas.setMap(map);
+		canvas.repaint();
+	}
+	
 	public void updateTaxi(DataSerializable.TaxiData taxi) {
 		if (taxisTableModel.getRowCount() == 0) {
 			taxis.put(taxi, taxi.getPosition());
@@ -247,17 +183,6 @@ public class MapGUI extends JFrame {
 												  "" + taxi.getCapacity() });
 			updateMap(taxi.getPosition(), "taxi");
 		}
-	}
-
-	private void updateTaxiMap(DataSerializable.TaxiData taxi){
-		// If hashmap contains the taxi already
-		if(taxis.containsKey(taxi)){
-
-		}
-
-		// Updates hashmap
-		taxis.put(taxi, taxi.getPosition());
-		// Updates map position
 	}
 
 	public void updatePassenger(DataSerializable.PassengerData passenger) {
@@ -317,7 +242,6 @@ public class MapGUI extends JFrame {
 				map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 5 : 6);
 		}
 	}
-
 
 	private void updateMap(Cell currPos, Cell newPos, String type) {
 		if (currPos.getRow() >= 0 && currPos.getRow() < map.length
