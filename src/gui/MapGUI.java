@@ -53,6 +53,7 @@ public class MapGUI extends JFrame {
 	// Variables
 	private byte[][] map;
 	private int[][] durationMap;
+	private byte[][] entityMap;
 	private HashMap<DataSerializable.TaxiData, Cell> taxis;
 	private HashMap<DataSerializable.PassengerData, Cell> passengers;
 
@@ -212,7 +213,7 @@ public class MapGUI extends JFrame {
 				}
 			}
 		}
-		
+
 		mapPanel.repaint();
 	}
 
@@ -229,7 +230,7 @@ public class MapGUI extends JFrame {
 			for (int i = 0; i < taxisTableModel.getRowCount(); i++) {
 				if (taxisTableModel.getValueAt(i, 0).equals(taxi.getAID().getLocalName())) {
 					Cell temp = taxis.get(taxi);
-					
+
 					taxis.put(taxi, taxi.getPosition());
 					taxisTableModel.setValueAt("" + taxi.getPosition().getRow(), i, 1);
 					taxisTableModel.setValueAt("" + taxi.getPosition().getCol(), i, 2);
@@ -249,7 +250,17 @@ public class MapGUI extends JFrame {
 		}
 	}
 
-	
+	private void updateTaxiMap(DataSerializable.TaxiData taxi){
+		// If hashmap contains the taxi already
+		if(taxis.containsKey(taxi)){
+
+		}
+
+		// Updates hashmap
+		taxis.put(taxi, taxi.getPosition());
+		// Updates map position
+	}
+
 	public void updatePassenger(DataSerializable.PassengerData passenger) {
 		if (passengersTableModel.getRowCount() == 0) {
 			passengers.put(passenger, passenger.getStartingCell());
@@ -288,7 +299,6 @@ public class MapGUI extends JFrame {
 		}
 	}
 
-
 	private void updateMap(Cell newPos, String type) {
 		if (newPos.getRow() >= 0 && newPos.getRow() < map.length
 			&& newPos.getCol() >= 0 && newPos.getCol() < map[0].length) {
@@ -309,7 +319,7 @@ public class MapGUI extends JFrame {
 		}
 	}
 
-	
+
 	private void updateMap(Cell currPos, Cell newPos, String type) {
 		if (currPos.getRow() >= 0 && currPos.getRow() < map.length
 			&& currPos.getCol() >= 0 && currPos.getCol() < map[0].length) {
@@ -325,7 +335,7 @@ public class MapGUI extends JFrame {
 					map[currPos.getRow()][currPos.getCol()] = (byte) (type.equals("taxi") ? 3 : 2);
 				else if (map[currPos.getRow()][currPos.getCol()] == 6)
 					map[currPos.getRow()][currPos.getCol()] = 3;
-				
+
 				if (map[newPos.getRow()][newPos.getCol()] == 1)
 					System.out.println("Invalid position!");
 				else if (map[newPos.getRow()][newPos.getCol()] == 0)
