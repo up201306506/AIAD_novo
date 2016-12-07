@@ -7,6 +7,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Random;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -25,6 +26,8 @@ public class MapGUI extends JFrame {
 	// Main Panel
 	private JTabbedPane tabbedPanel;
 	private final byte CELL_SIZE = 15;
+	private final byte OFFSET_WIDTH = 61;
+	private final byte OFFSET_HEIGHT = 108;
 
 	// Tables View
 	private JPanel tablesPanel;
@@ -79,10 +82,9 @@ public class MapGUI extends JFrame {
 		tabbedPanel.addTab("Tables View", tablesPanel);
 		tabbedPanel.addTab("Map View", canvas);
 
-		// setResizable(false);
 		setContentPane(tabbedPanel);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		setSize(new Dimension((map.length * CELL_SIZE) + 40, (map[0].length * CELL_SIZE) + 100));
+		setSize(new Dimension((map.length * CELL_SIZE) + OFFSET_WIDTH, (map[0].length * CELL_SIZE) + OFFSET_HEIGHT));
 
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		int centerX = (int) screenSize.getWidth() / 2;
@@ -125,25 +127,16 @@ public class MapGUI extends JFrame {
 	}
 
 	private void loadTimes() {
-		try {
-			BufferedReader reader = new BufferedReader(new FileReader("resources/times.txt"));
-
-			String firstLine = reader.readLine();
-			String sizes[] = firstLine.split(":");
-			durationMap = new int[Integer.parseInt(sizes[0])][Integer.parseInt(sizes[1])];
-
-			int j = 0;
-			String line = null;
-			while ((line = reader.readLine()) != null) {
-				String[] values = line.split(",");
-				for (int i = 0; i < values.length; i++)
-					durationMap[j][i] = Integer.parseInt(values[i]);
-				j++;
+		Random r = new Random();
+		durationMap = new int[map.length][map[0].length];
+		
+		for (int i = 0; i < map.length; i++) {
+			for (int j = 0; j < map[i].length; j++) {
+				if (map[i][j] == 0)
+					durationMap[i][j] = r.nextInt((1500 - 500) + 1) + 500;
+				else if (map[i][j] == 7)
+					durationMap[i][j] = 0;
 			}
-
-			reader.close();
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
 	}
 
