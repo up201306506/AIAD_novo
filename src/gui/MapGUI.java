@@ -82,7 +82,7 @@ public class MapGUI extends JFrame {
 		// setResizable(false);
 		setContentPane(tabbedPanel);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		setSize(new Dimension(map.length * CELL_SIZE, map[0].length * CELL_SIZE));
+		setSize(new Dimension((map.length * CELL_SIZE) + 40, (map[0].length * CELL_SIZE) + 100));
 
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		int centerX = (int) screenSize.getWidth() / 2;
@@ -152,14 +152,14 @@ public class MapGUI extends JFrame {
 		canvas.setMap(map);
 		canvas.repaint();
 	}
-	
+
 	public void updateTaxi(DataSerializable.TaxiData taxi) {
 		if (taxisTableModel.getRowCount() == 0) {
 			taxis.put(taxi, taxi.getPosition());
 			taxisTableModel.addRow(new String[] { "" + taxi.getAID().getLocalName(),
-												  "" + taxi.getPosition().getRow(),
-												  "" + taxi.getPosition().getCol(),
-												  "" + taxi.getCapacity() });
+					"" + taxi.getPosition().getRow(),
+					"" + taxi.getPosition().getCol(),
+					"" + taxi.getCapacity() });
 			updateMap(taxi.getPosition(), "taxi");
 		} else {
 			for (int i = 0; i < taxisTableModel.getRowCount(); i++) {
@@ -178,9 +178,9 @@ public class MapGUI extends JFrame {
 
 			taxis.put(taxi, taxi.getPosition());
 			taxisTableModel.addRow(new String[] { "" + taxi.getAID().getLocalName(),
-												  "" + taxi.getPosition().getRow(),
-												  "" + taxi.getPosition().getCol(),
-												  "" + taxi.getCapacity() });
+					"" + taxi.getPosition().getRow(),
+					"" + taxi.getPosition().getCol(),
+					"" + taxi.getCapacity() });
 			updateMap(taxi.getPosition(), "taxi");
 		}
 	}
@@ -189,11 +189,11 @@ public class MapGUI extends JFrame {
 		if (passengersTableModel.getRowCount() == 0) {
 			passengers.put(passenger, passenger.getStartingCell());
 			passengersTableModel.addRow(new String[] { "" + passenger.getAID().getLocalName(),
-													   "" + passenger.getStartingCell().getRow(),
-													   "" + passenger.getStartingCell().getCol(),
-													   "" + passenger.getEndingCell().getRow(),
-													   "" + passenger.getEndingCell().getCol(),
-													   "" + passenger.getNumberOfPassengers() });
+					"" + passenger.getStartingCell().getRow(),
+					"" + passenger.getStartingCell().getCol(),
+					"" + passenger.getEndingCell().getRow(),
+					"" + passenger.getEndingCell().getCol(),
+					"" + passenger.getNumberOfPassengers() });
 			updateMap(passenger.getStartingCell(), "passenger");
 		} else {
 			for (int i = 0; i < passengersTableModel.getRowCount(); i++) {
@@ -214,18 +214,18 @@ public class MapGUI extends JFrame {
 
 			passengers.put(passenger, passenger.getStartingCell());
 			passengersTableModel.addRow(new String[] { "" + passenger.getAID().getLocalName(),
-													   "" + passenger.getStartingCell().getRow(),
-													   "" + passenger.getStartingCell().getCol(),
-													   "" + passenger.getEndingCell().getRow(),
-													   "" + passenger.getEndingCell().getCol(),
-													   "" + passenger.getNumberOfPassengers() });
+					"" + passenger.getStartingCell().getRow(),
+					"" + passenger.getStartingCell().getCol(),
+					"" + passenger.getEndingCell().getRow(),
+					"" + passenger.getEndingCell().getCol(),
+					"" + passenger.getNumberOfPassengers() });
 			updateMap(passenger.getStartingCell(), "passenger");
 		}
 	}
 
 	private void updateMap(Cell newPos, String type) {
 		if (newPos.getRow() >= 0 && newPos.getRow() < map.length
-			&& newPos.getCol() >= 0 && newPos.getCol() < map[0].length) {
+				&& newPos.getCol() >= 0 && newPos.getCol() < map[0].length) {
 			if (map[newPos.getRow()][newPos.getCol()] == 1)
 				System.out.println("Invalid position!");
 			else if (map[newPos.getRow()][newPos.getCol()] == 0)
@@ -245,9 +245,9 @@ public class MapGUI extends JFrame {
 
 	private void updateMap(Cell currPos, Cell newPos, String type) {
 		if (currPos.getRow() >= 0 && currPos.getRow() < map.length
-			&& currPos.getCol() >= 0 && currPos.getCol() < map[0].length) {
+				&& currPos.getCol() >= 0 && currPos.getCol() < map[0].length) {
 			if (newPos.getRow() >= 0 && newPos.getRow() < map.length
-				&& newPos.getCol() >= 0 && newPos.getCol() < map[0].length) {
+					&& newPos.getCol() >= 0 && newPos.getCol() < map[0].length) {
 				if (map[currPos.getRow()][currPos.getCol()] == 2)
 					map[currPos.getRow()][currPos.getCol()] = 0;
 				else if (map[currPos.getRow()][currPos.getCol()] == 3)
@@ -274,6 +274,58 @@ public class MapGUI extends JFrame {
 				else if (map[newPos.getRow()][newPos.getCol()] == 6)
 					map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 5 : 6);
 			}
+		}
+	}
+
+	public void removeTaxi(DataSerializable.TaxiData taxi) {
+		// Remove from table
+		for (int i = taxisTableModel.getRowCount(); i >= 0; i--) {
+			if (taxisTableModel.getValueAt(i, 0).equals(taxi.getAID().getLocalName())) {
+				taxisTableModel.removeRow(i);
+				break;
+			}
+		}
+
+		// Remove from hashmap
+		Cell temp = taxis.get(taxi);
+		if (temp != null)
+			taxis.remove(taxi);
+
+		// Remove from map
+		removeFromMap(temp, "taxi");
+	}
+
+	public void removePassenger(DataSerializable.PassengerData passenger) {
+		// Remove from table
+		for (int i = passengersTableModel.getRowCount(); i >= 0; i--) {
+			if (passengersTableModel.getValueAt(i, 0).equals(passenger.getAID().getLocalName())) {
+				passengersTableModel.removeRow(i);
+				break;
+			}
+		}
+
+		// Remove from hashmap
+		Cell temp = passengers.get(passenger);
+		if (temp != null)
+			passengers.remove(passenger);
+
+		// Remove from map
+		removeFromMap(temp, "passenger");
+	}
+
+	private void removeFromMap(Cell pos, String type) {
+		if (pos.getRow() >= 0 && pos.getRow() < map.length
+				&& pos.getCol() >= 0 && pos.getCol() < map[0].length) {
+			if (map[pos.getRow()][pos.getCol()] == 2)
+				map[pos.getRow()][pos.getCol()] = 0;
+			else if (map[pos.getRow()][pos.getCol()] == 3)
+				map[pos.getRow()][pos.getCol()] = 0;
+			else if (map[pos.getRow()][pos.getCol()] == 4)
+				map[pos.getRow()][pos.getCol()] = 2;
+			else if (map[pos.getRow()][pos.getCol()] == 5)
+				map[pos.getRow()][pos.getCol()] = (byte) (type.equals("taxi") ? 3 : 2);
+			else if (map[pos.getRow()][pos.getCol()] == 6)
+				map[pos.getRow()][pos.getCol()] = 3;
 		}
 	}
 }

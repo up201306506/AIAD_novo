@@ -55,7 +55,7 @@ public class Canvas extends JPanel {
 		
 		for (int y = 0; y < map.length; y++) {
 			for (int x = 0; x < map[y].length; x++) {
-				int ySize = this.getWidth() / map.length;
+				int ySize = this.getHeight() / map.length;
 				int xSize = this.getWidth() / map[y].length;
 				
 				switch (map[y][x]) {
