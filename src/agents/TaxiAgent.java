@@ -104,19 +104,38 @@ public class TaxiAgent extends Agent {
 		path = new Stack<>(); // To hold this taxi path
 		travellingPassengers = new ArrayList<>(); // To hold passengers travelling
 
-		// Read from arguments
-		// Temporary values TODO ler dos argumentos
+		// --------------------------------------------
+				// Read from arguments
 		int row = 0, col = 0;
 		
 		Object[] args = getArguments();
 		if (args != null && args.length > 0) {
+			String[] taxiArgs = new String[args.length];
 			
+			for (int i = 0; i < args.length; i++)
+				taxiArgs[i] = args[i].toString();
+			
+			if (cellMap.get(new Cell(Integer.parseInt(taxiArgs[0]), Integer.parseInt(taxiArgs[1]), 0, false)).isWall()) {
+				System.out.println("-T >> " + getLocalName() + " >> Invalid row and/or column placement");
+				doDelete();
+				return;
+			} else {
+				if (Integer.parseInt(taxiArgs[2]) > 0) {
+					row = Integer.parseInt(taxiArgs[0]);
+					col = Integer.parseInt(taxiArgs[1]);
+					maxCapacity = Integer.parseInt(taxiArgs[2]);
+				} else {
+					System.out.println("-T >> " + getLocalName() + " >> Invalid max capacity value");
+					doDelete();
+					return;
+				}
+			}
 		} else {
 			row = 1;
 			col = 6;
 			maxCapacity = 4;
 		}
-
+		
 		capacity = maxCapacity;
 		positionCell = new Cell(row, col, 0, false);
 
