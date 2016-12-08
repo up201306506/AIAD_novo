@@ -129,7 +129,7 @@ public class MapGUI extends JFrame {
 	private void loadTimes() {
 		Random r = new Random();
 		durationMap = new int[map.length][map[0].length];
-		
+
 		for (int i = 0; i < map.length; i++) {
 			for (int j = 0; j < map[i].length; j++) {
 				if (map[i][j] == 0)
@@ -332,10 +332,10 @@ public class MapGUI extends JFrame {
 		}
 	}
 
-	
+
 	public void removeTaxi(DataSerializable.TaxiData taxi) {
 		// Remove from table
-		for (int i = taxisTableModel.getRowCount(); i >= 0; i--) {
+		for (int i = taxisTableModel.getRowCount() - 1; i >= 0; i--) {
 			if (taxisTableModel.getValueAt(i, 0).equals(taxi.getAID().getLocalName())) {
 				taxisTableModel.removeRow(i);
 				break;
@@ -351,10 +351,10 @@ public class MapGUI extends JFrame {
 		removeFromMap(temp, "taxi");
 	}
 
-	
+
 	public void removePassenger(DataSerializable.PassengerData passenger) {
 		// Remove from table
-		for (int i = passengersTableModel.getRowCount(); i >= 0; i--) {
+		for (int i = passengersTableModel.getRowCount() - 1; i >= 0; i--) {
 			if (passengersTableModel.getValueAt(i, 0).equals(passenger.getAID().getLocalName())) {
 				passengersTableModel.removeRow(i);
 				break;
@@ -369,7 +369,7 @@ public class MapGUI extends JFrame {
 		// Remove from map
 		removeFromMap(temp, "passenger");
 	}
-	
+
 	public void removeDestination(Cell pos) {
 		if (map[pos.getRow()][pos.getCol()] == 8) {
 			map[pos.getRow()][pos.getCol()] = 0;
@@ -386,8 +386,7 @@ public class MapGUI extends JFrame {
 		}
 	}
 
-	
-	private void removeFromMap(Cell pos, String type) {
+	public void removeFromMap(Cell pos, String type) {
 		if (pos.getRow() >= 0 && pos.getRow() < map.length
 			&& pos.getCol() >= 0 && pos.getCol() < map[0].length) {
 			if (map[pos.getRow()][pos.getCol()] == 2)
