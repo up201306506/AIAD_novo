@@ -234,6 +234,7 @@ public class TaxiStationAgent extends Agent{
 
 					// Update GUI passenger information
 					updateGUI(passenger);
+					removeFromMapViewGui(passenger);
 				}else{
 					block();
 				}
@@ -261,9 +262,13 @@ public class TaxiStationAgent extends Agent{
 
 					// Updates agent tables
 					if(takedownMessage.getConversationId().equals("takedown-passenger")){
+						// Updates GUI
+						removeFromGUI(passengers.get(takedownMessage.getSender()));
 						// Deletes passenger from table
 						passengers.remove(takedownMessage.getSender());
 					}else if(takedownMessage.getConversationId().equals("takedown-taxi")){
+						// Updates GUI
+						removeFromGUI(taxis.get(takedownMessage.getSender()));
 						// Deletes taxi from table
 						taxis.remove(takedownMessage.getSender());
 					}else{
@@ -310,10 +315,27 @@ public class TaxiStationAgent extends Agent{
 		mapGUI.updateCanvas();
 	}
 
+	private void removeFromGUI(DataSerializable.TaxiData taxi){
+		// Updates GUI to remove taxi
+		mapGUI.removeTaxi(taxi);
+		mapGUI.updateCanvas();
+	}
+
 	private void updateGUI(DataSerializable.PassengerData passenger){
 		// Updates GUI passenger information
 		mapGUI.updatePassenger(passenger);
 		mapGUI.updateCanvas();
+	}
+
+	private void removeFromGUI(DataSerializable.PassengerData passenger){
+		// Updates GUI to remove passenger
+		mapGUI.removePassenger(passenger);
+		mapGUI.updateCanvas();
+	}
+
+	private void removeFromMapViewGui(DataSerializable.PassengerData passenger){
+		// Updates Map View from GUI
+		mapGUI.removeFromMap(passenger.getStartingCell(), "passenger");
 	}
 
 	// --------------------------------------------
@@ -523,8 +545,8 @@ public class TaxiStationAgent extends Agent{
 				}
 				break;
 			case SLEEP:
-				// Resets this behaviour after 45 seconds
-				myAgent.addBehaviour(new WakerBehaviour(myAgent, 45000) {
+				// Resets this behaviour after 7 seconds
+				myAgent.addBehaviour(new WakerBehaviour(myAgent, 7000) {
 					private static final long serialVersionUID = -3004190994251093897L;
 
 					@Override

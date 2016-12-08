@@ -264,7 +264,7 @@ public class PassengerAgent extends Agent {
 		send(takedownMessage);
 		// Deregister from the yellow pages
 		try {
-			if(DFService.search(this, dfd).length != 0)
+			if(DFService.search(this, dfd).length != 0 && dfd != null)
 				DFService.deregister(this);
 		}
 		catch (FIPAException fe) {
