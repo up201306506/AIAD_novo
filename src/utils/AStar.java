@@ -32,7 +32,7 @@ public class AStar {
 
 		int estimateCost;
 		if(isDiminishingDuration)
-			estimateCost = euclideanDistance * 1000;
+			estimateCost = euclideanDistance * 500;
 		else
 			estimateCost = euclideanDistance;
 
