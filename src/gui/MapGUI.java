@@ -150,9 +150,9 @@ public class MapGUI extends JFrame {
 		if (taxisTableModel.getRowCount() == 0) {
 			taxis.put(taxi, taxi.getPosition());
 			taxisTableModel.addRow(new String[] { "" + taxi.getAID().getLocalName(),
-					"" + taxi.getPosition().getRow(),
-					"" + taxi.getPosition().getCol(),
-					"" + taxi.getCapacity() });
+												  "" + taxi.getPosition().getRow(),
+												  "" + taxi.getPosition().getCol(),
+												  "" + taxi.getCapacity() });
 			updateMap(taxi.getPosition(), "taxi");
 		} else {
 			for (int i = 0; i < taxisTableModel.getRowCount(); i++) {
@@ -182,12 +182,13 @@ public class MapGUI extends JFrame {
 		if (passengersTableModel.getRowCount() == 0) {
 			passengers.put(passenger, passenger.getStartingCell());
 			passengersTableModel.addRow(new String[] { "" + passenger.getAID().getLocalName(),
-					"" + passenger.getStartingCell().getRow(),
-					"" + passenger.getStartingCell().getCol(),
-					"" + passenger.getEndingCell().getRow(),
-					"" + passenger.getEndingCell().getCol(),
-					"" + passenger.getNumberOfPassengers() });
+														"" + passenger.getStartingCell().getRow(),
+														"" + passenger.getStartingCell().getCol(),
+														"" + passenger.getEndingCell().getRow(),
+														"" + passenger.getEndingCell().getCol(),
+														"" + passenger.getNumberOfPassengers() });
 			updateMap(passenger.getStartingCell(), "passenger");
+			updateMap(passenger.getEndingCell(), "destination");
 		} else {
 			for (int i = 0; i < passengersTableModel.getRowCount(); i++) {
 				if (passengersTableModel.getValueAt(i, 0).equals(passenger.getAID().getLocalName())) {
@@ -207,40 +208,79 @@ public class MapGUI extends JFrame {
 
 			passengers.put(passenger, passenger.getStartingCell());
 			passengersTableModel.addRow(new String[] { "" + passenger.getAID().getLocalName(),
-					"" + passenger.getStartingCell().getRow(),
-					"" + passenger.getStartingCell().getCol(),
-					"" + passenger.getEndingCell().getRow(),
-					"" + passenger.getEndingCell().getCol(),
-					"" + passenger.getNumberOfPassengers() });
+													   "" + passenger.getStartingCell().getRow(),
+													   "" + passenger.getStartingCell().getCol(),
+													   "" + passenger.getEndingCell().getRow(),
+													   "" + passenger.getEndingCell().getCol(),
+													   "" + passenger.getNumberOfPassengers() });
 			updateMap(passenger.getStartingCell(), "passenger");
+			updateMap(passenger.getEndingCell(), "destination");
 		}
 	}
 
 	private void updateMap(Cell newPos, String type) {
 		if (newPos.getRow() >= 0 && newPos.getRow() < map.length
-				&& newPos.getCol() >= 0 && newPos.getCol() < map[0].length) {
-			if (map[newPos.getRow()][newPos.getCol()] == 1)
-				System.out.println("Invalid position!");
-			else if (map[newPos.getRow()][newPos.getCol()] == 0)
-				map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 2 : 3);
-			else if (map[newPos.getRow()][newPos.getCol()] == 2)
-				map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 4 : 5);
-			else if (map[newPos.getRow()][newPos.getCol()] == 3)
-				map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 5 : 6);
-			else if (map[newPos.getRow()][newPos.getCol()] == 4)
-				map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 4 : 5);
-			else if (map[newPos.getRow()][newPos.getCol()] == 5)
-				map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 5 : 5);
-			else if (map[newPos.getRow()][newPos.getCol()] == 6)
-				map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 5 : 6);
+			&& newPos.getCol() >= 0 && newPos.getCol() < map[0].length) {
+			switch (type) {
+			case "taxi":
+				if (map[newPos.getRow()][newPos.getCol()] == 1)
+					System.out.println("Invalid position!");
+				else if (map[newPos.getRow()][newPos.getCol()] == 0)
+					map[newPos.getRow()][newPos.getCol()] = 2;
+				else if (map[newPos.getRow()][newPos.getCol()] == 2)
+					map[newPos.getRow()][newPos.getCol()] = 4;
+				else if (map[newPos.getRow()][newPos.getCol()] == 3)
+					map[newPos.getRow()][newPos.getCol()] = 5;
+				else if (map[newPos.getRow()][newPos.getCol()] == 4)
+					map[newPos.getRow()][newPos.getCol()] = 4;
+				else if (map[newPos.getRow()][newPos.getCol()] == 5)
+					map[newPos.getRow()][newPos.getCol()] = 5;
+				else if (map[newPos.getRow()][newPos.getCol()] == 6)
+					map[newPos.getRow()][newPos.getCol()] = 5;
+				break;
+			case "passenger":
+				if (map[newPos.getRow()][newPos.getCol()] == 1)
+					System.out.println("Invalid position!");
+				else if (map[newPos.getRow()][newPos.getCol()] == 0)
+					map[newPos.getRow()][newPos.getCol()] = 3;
+				else if (map[newPos.getRow()][newPos.getCol()] == 2)
+					map[newPos.getRow()][newPos.getCol()] = 5;
+				else if (map[newPos.getRow()][newPos.getCol()] == 3)
+					map[newPos.getRow()][newPos.getCol()] = 6;
+				else if (map[newPos.getRow()][newPos.getCol()] == 4)
+					map[newPos.getRow()][newPos.getCol()] = 5;
+				else if (map[newPos.getRow()][newPos.getCol()] == 5)
+					map[newPos.getRow()][newPos.getCol()] = 5;
+				else if (map[newPos.getRow()][newPos.getCol()] == 6)
+					map[newPos.getRow()][newPos.getCol()] = 6;
+				break;
+			case "destination":
+				if (map[newPos.getRow()][newPos.getCol()] == 1)
+					System.out.println("Invalid position!");
+				else if (map[newPos.getRow()][newPos.getCol()] == 0)
+					map[newPos.getRow()][newPos.getCol()] = 8; // destination
+				else if (map[newPos.getRow()][newPos.getCol()] == 2)
+					map[newPos.getRow()][newPos.getCol()] = 9; // dest and taxi
+				else if (map[newPos.getRow()][newPos.getCol()] == 3)
+					map[newPos.getRow()][newPos.getCol()] = 10; // dest and passenger
+				else if (map[newPos.getRow()][newPos.getCol()] == 4)
+					map[newPos.getRow()][newPos.getCol()] = 11; // dest and taxis
+				else if (map[newPos.getRow()][newPos.getCol()] == 5)
+					map[newPos.getRow()][newPos.getCol()] = 12; // dest, taxi and passenger
+				else if (map[newPos.getRow()][newPos.getCol()] == 6)
+					map[newPos.getRow()][newPos.getCol()] = 13; // dest and passengers
+				break;
+			default:
+				System.out.println("Invalid cell type");
+			}
 		}
 	}
 
 	private void updateMap(Cell currPos, Cell newPos, String type) {
 		if (currPos.getRow() >= 0 && currPos.getRow() < map.length
-				&& currPos.getCol() >= 0 && currPos.getCol() < map[0].length) {
+			&& currPos.getCol() >= 0 && currPos.getCol() < map[0].length) {
 			if (newPos.getRow() >= 0 && newPos.getRow() < map.length
-					&& newPos.getCol() >= 0 && newPos.getCol() < map[0].length) {
+				&& newPos.getCol() >= 0 && newPos.getCol() < map[0].length) {
 				if (map[currPos.getRow()][currPos.getCol()] == 2)
 					map[currPos.getRow()][currPos.getCol()] = 0;
 				else if (map[currPos.getRow()][currPos.getCol()] == 3)
@@ -251,6 +291,16 @@ public class MapGUI extends JFrame {
 					map[currPos.getRow()][currPos.getCol()] = (byte) (type.equals("taxi") ? 3 : 2);
 				else if (map[currPos.getRow()][currPos.getCol()] == 6)
 					map[currPos.getRow()][currPos.getCol()] = 3;
+				else if (map[currPos.getRow()][currPos.getCol()] == 9)
+					map[currPos.getRow()][currPos.getCol()] = 8;
+				else if (map[currPos.getRow()][currPos.getCol()] == 10)
+					map[currPos.getRow()][currPos.getCol()] = 8;
+				else if (map[currPos.getRow()][currPos.getCol()] == 11)
+					map[currPos.getRow()][currPos.getCol()] = 9;
+				else if (map[currPos.getRow()][currPos.getCol()] == 12)
+					map[currPos.getRow()][currPos.getCol()] = (byte) (type.equals("taxi") ? 10 : 9);
+				else if (map[currPos.getRow()][currPos.getCol()] == 13)
+					map[currPos.getRow()][currPos.getCol()] = 10;
 
 				if (map[newPos.getRow()][newPos.getCol()] == 1)
 					System.out.println("Invalid position!");
@@ -266,10 +316,23 @@ public class MapGUI extends JFrame {
 					map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 5 : 5);
 				else if (map[newPos.getRow()][newPos.getCol()] == 6)
 					map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 5 : 6);
+				else if (map[newPos.getRow()][newPos.getCol()] == 8)
+					map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 9 : 10);
+				else if (map[newPos.getRow()][newPos.getCol()] == 9)
+					map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 11 : 12);
+				else if (map[newPos.getRow()][newPos.getCol()] == 10)
+					map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 12 : 13);
+				else if (map[newPos.getRow()][newPos.getCol()] == 11)
+					map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 11 : 12);
+				else if (map[newPos.getRow()][newPos.getCol()] == 12)
+					map[newPos.getRow()][newPos.getCol()] = 12;
+				else if (map[newPos.getRow()][newPos.getCol()] == 13)
+					map[newPos.getRow()][newPos.getCol()] = (byte) (type.equals("taxi") ? 12 : 13);
 			}
 		}
 	}
 
+	
 	public void removeTaxi(DataSerializable.TaxiData taxi) {
 		// Remove from table
 		for (int i = taxisTableModel.getRowCount(); i >= 0; i--) {
@@ -288,6 +351,7 @@ public class MapGUI extends JFrame {
 		removeFromMap(temp, "taxi");
 	}
 
+	
 	public void removePassenger(DataSerializable.PassengerData passenger) {
 		// Remove from table
 		for (int i = passengersTableModel.getRowCount(); i >= 0; i--) {
@@ -305,10 +369,27 @@ public class MapGUI extends JFrame {
 		// Remove from map
 		removeFromMap(temp, "passenger");
 	}
+	
+	public void removeDestination(Cell pos) {
+		if (map[pos.getRow()][pos.getCol()] == 8) {
+			map[pos.getRow()][pos.getCol()] = 0;
+		} else if (map[pos.getRow()][pos.getCol()] == 9) {
+			map[pos.getRow()][pos.getCol()] = 2;
+		} else if (map[pos.getRow()][pos.getCol()] == 10) {
+			map[pos.getRow()][pos.getCol()] = 3;
+		} else if (map[pos.getRow()][pos.getCol()] == 11) {
+			map[pos.getRow()][pos.getCol()] = 4;
+		} else if (map[pos.getRow()][pos.getCol()] == 12) {
+			map[pos.getRow()][pos.getCol()] = 5;
+		} else if (map[pos.getRow()][pos.getCol()] == 13) {
+			map[pos.getRow()][pos.getCol()] = 6;
+		}
+	}
 
+	
 	private void removeFromMap(Cell pos, String type) {
 		if (pos.getRow() >= 0 && pos.getRow() < map.length
-				&& pos.getCol() >= 0 && pos.getCol() < map[0].length) {
+			&& pos.getCol() >= 0 && pos.getCol() < map[0].length) {
 			if (map[pos.getRow()][pos.getCol()] == 2)
 				map[pos.getRow()][pos.getCol()] = 0;
 			else if (map[pos.getRow()][pos.getCol()] == 3)
@@ -319,6 +400,16 @@ public class MapGUI extends JFrame {
 				map[pos.getRow()][pos.getCol()] = (byte) (type.equals("taxi") ? 3 : 2);
 			else if (map[pos.getRow()][pos.getCol()] == 6)
 				map[pos.getRow()][pos.getCol()] = 3;
+			else if (map[pos.getRow()][pos.getCol()] == 9)
+				map[pos.getRow()][pos.getCol()] = 2;
+			else if (map[pos.getRow()][pos.getCol()] == 10)
+				map[pos.getRow()][pos.getCol()] = 3;
+			else if (map[pos.getRow()][pos.getCol()] == 11)
+				map[pos.getRow()][pos.getCol()] = 4;
+			else if (map[pos.getRow()][pos.getCol()] == 12)
+				map[pos.getRow()][pos.getCol()] = 5;
+			else if (map[pos.getRow()][pos.getCol()] == 13)
+				map[pos.getRow()][pos.getCol()] = 6;
 		}
 	}
 }
