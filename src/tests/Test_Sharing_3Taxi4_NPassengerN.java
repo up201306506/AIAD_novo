@@ -7,8 +7,8 @@ import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 
-public class Test_NoSharing_3Taxi4_NPassengerN extends Agent{
-	private static final long serialVersionUID = 2800611550402245520L;
+public class Test_Sharing_3Taxi4_NPassengerN extends Agent {
+	private static final long serialVersionUID = 3120211474419082701L;
 
 	// Holder agents
 	private ArrayList<AgentController> agents;
@@ -24,7 +24,9 @@ public class Test_NoSharing_3Taxi4_NPassengerN extends Agent{
 		try {
 			// Creates agents
 			// Station
-			AgentController station = cc.createNewAgent("station", "agents.TaxiStationAgent", null);
+			String stationArgsStr = "-sharing,-distance";
+			Object[] stationArgs = stationArgsStr.split(",");
+			AgentController station = cc.createNewAgent("station", "agents.TaxiStationAgent", stationArgs);
 			station.start();
 			agents.add(station);
 

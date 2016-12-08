@@ -7,8 +7,8 @@ import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 
-public class Test_NoSharing_2Taxi4_1Passenger8 extends Agent{
-	private static final long serialVersionUID = -1180045478046218401L;
+public class Test extends Agent {
+	private static final long serialVersionUID = 6320465220909354190L;
 
 	// Holder agents
 	private ArrayList<AgentController> agents;
@@ -24,7 +24,9 @@ public class Test_NoSharing_2Taxi4_1Passenger8 extends Agent{
 		try {
 			// Creates agents
 			// Station
-			AgentController station = cc.createNewAgent("station", "agents.TaxiStationAgent", null);
+			String stationArgsStr = "-sharing,-distance";
+			Object[] stationArgs = stationArgsStr.split(",");
+			AgentController station = cc.createNewAgent("station", "agents.TaxiStationAgent", stationArgs);
 			station.start();
 			agents.add(station);
 
@@ -38,7 +40,7 @@ public class Test_NoSharing_2Taxi4_1Passenger8 extends Agent{
 			agents.add(taxi1);
 
 			// Taxi2
-			String taxi2ArgsStr = "4,16,4";
+			String taxi2ArgsStr = "38,32,4";
 			Object[] taxi2Args = taxi2ArgsStr.split(",");
 			AgentController taxi2 = cc.createNewAgent("taxi2", "agents.TaxiAgent", taxi2Args);
 			taxi2.start();
@@ -46,12 +48,12 @@ public class Test_NoSharing_2Taxi4_1Passenger8 extends Agent{
 
 			sleep(0.7);
 
-			// Passenger
-			String passengerArgsStr = "10,3,18,14,8";
-			Object[] passengerArgs = passengerArgsStr.split(",");
-			AgentController passenger = cc.createNewAgent("passenger", "agents.PassengerAgent", passengerArgs);
-			passenger.start();
-			agents.add(passenger);
+			// Passenger1
+			String passenger1ArgsStr = "4,4,4,8,8";
+			Object[] passenger1Args = passenger1ArgsStr.split(",");
+			AgentController passenger1 = cc.createNewAgent("passenger1", "agents.PassengerAgent", passenger1Args);
+			passenger1.start();
+			agents.add(passenger1);
 
 		} catch (StaleProxyException e) {
 			e.printStackTrace();

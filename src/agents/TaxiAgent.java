@@ -23,13 +23,12 @@ import jade.lang.acl.UnreadableException;
 import utils.AStar;
 import utils.Cell;
 import utils.DataSerializable;
-import utils.Cell.CellValue;
 
 public class TaxiAgent extends Agent {
 	private static final long serialVersionUID = 163911234618964268L;
 
 	// Static configuration value
-	private static float COMPENSATION_VALUE = 0.25f;
+	private static float COMPENSATION_VALUE = 0.2f;
 
 	// Taxi dynamic variables
 	private DFAgentDescription dfd;
@@ -216,13 +215,16 @@ public class TaxiAgent extends Agent {
 						DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) orderMessage.getContentObject();
 
 						// Re-verifies order
-						if(!passenger.isSharingPolicy() || travellingPassengers.size() == 0){ // Station has no sharing policy TODO cuidado com o size
+						if(!passenger.isSharingPolicy() || travellingPassengers.size() == 0){ // Station has no sharing policy
 							if(travellingPassengers.size() > 0){ // Taxi is already taken by another passenger
 								// Refuses order
 								ACLMessage refuseOrder = orderMessage.createReply();
 								refuseOrder.setPerformative(ACLMessage.DISCONFIRM);
 								refuseOrder.setContent("refuse-order");
 								myAgent.send(refuseOrder);
+
+								// TODO DOODODODODO
+								System.err.println("refused");
 							}else{ // Taxi is free to take passengers
 								// Saves important checkpoints for notifications
 								travellingPassengers.add(passenger);
@@ -259,7 +261,6 @@ public class TaxiAgent extends Agent {
 								refuseOrder.setContent("refuse-order");
 								myAgent.send(refuseOrder);
 							}else{ // Taxi has free spaces
-								// TODO ainda nao esta feito
 								// Saves important checkpoints for notifications
 								travellingPassengers.add(passenger);
 
@@ -269,7 +270,6 @@ public class TaxiAgent extends Agent {
 								acceptsOrder.setContent("accept-order");
 								myAgent.send(acceptsOrder);
 
-								// TODO ????? vvvvv
 								// Important path points
 								PriorityQueue<Cell.CellValue> pathPoints = new PriorityQueue<>();
 
@@ -297,13 +297,21 @@ public class TaxiAgent extends Agent {
 										pathPoints.add(new Cell.CellValue(p.getEndingCell(),
 												AStar.PathDuration(
 														AStar.AStarAlgorithm(cellMap,
-																positionCell, p.getEndingCell(),
+																positionCell, p.getStartingCell(),
+																p.isDiminishingDuration()))
+												+ AStar.PathDuration(
+														AStar.AStarAlgorithm(cellMap,
+																p.getStartingCell(), p.getEndingCell(),
 																p.isDiminishingDuration()))));
 									}else{
 										pathPoints.add(new Cell.CellValue(p.getEndingCell(),
 												AStar.PathDistance(
 														AStar.AStarAlgorithm(cellMap,
-																positionCell, p.getEndingCell(),
+																positionCell, p.getStartingCell(),
+																p.isDiminishingDuration()))
+												+ AStar.PathDistance(
+														AStar.AStarAlgorithm(cellMap,
+																p.getStartingCell(), p.getEndingCell(),
 																p.isDiminishingDuration()))));
 									}
 								}
@@ -316,8 +324,10 @@ public class TaxiAgent extends Agent {
 									allPaths.push(
 											AStar.GetMoveOrders(
 													AStar.AStarAlgorithm(cellMap,
-															lastPathPosition, pathPoints.remove().getCell(),
+															lastPathPosition, pathPoints.peek().getCell(),
 															passenger.isDiminishingDuration())));
+
+									lastPathPosition = pathPoints.remove().getCell();
 								}while(!pathPoints.isEmpty());
 
 								// Path is the bottom of the path stack
@@ -373,7 +383,7 @@ public class TaxiAgent extends Agent {
 	// Functions
 	private void changeTaxiPosition(Cell nextPosition){
 		// Display movement
-		System.out.println("-T >> " + getLocalName() + " >> From: " + positionCell + ", to: " + nextPosition);
+		//System.out.println("-T >> " + getLocalName() + " >> From: " + positionCell + ", to: " + nextPosition);
 
 		// Updates taxi position
 		positionCell = nextPosition;
@@ -476,14 +486,14 @@ public class TaxiAgent extends Agent {
 
 		// Minimal distance to travel both passengers for A and B, respectively
 		int forA = Math.min(distanceABA, distanceABBA);
-		int forB = distanceBAB;
+		int forB = Math.min(distanceBAB, originalDistanceB);
 
 		// If minimal distance to travel is a lot bigger than the distance of original path
 		// It is not worthy to travel another passenger
-		if((forA / originalDistanceA) - 1 > COMPENSATION_VALUE)
+		if(((float) forA / originalDistanceA) - 1 > COMPENSATION_VALUE)
 			return false;
 
-		if((forB / originalDistanceB) - 1 > COMPENSATION_VALUE)
+		if(((float) forB / originalDistanceB) - 1 > COMPENSATION_VALUE)
 			return false;
 
 		// Returns true if it is advantageous for both passengers
@@ -499,8 +509,9 @@ public class TaxiAgent extends Agent {
 		ArrayList<ArrayList<DataSerializable.PassengerData>> temp = powerSet(passengersToComapareTo);
 		ArrayList<ArrayList<DataSerializable.PassengerData>> passengersCombinations = new ArrayList<>();
 		for(ArrayList<DataSerializable.PassengerData> arr : temp){
-			if(arr.size() == 2)
+			if(arr.size() == 2){
 				passengersCombinations.add(arr);
+			}
 		}
 
 		// Holds results of advantages
@@ -580,19 +591,46 @@ public class TaxiAgent extends Agent {
 		public void action() {
 			switch (state) {
 			case PROCESS_PROPOSE:
-				if(!passengerData.isSharingPolicy() || travellingPassengers.size() == 0){ // Station has no sharing policy TODO cuidado com o size
+				if(!passengerData.isSharingPolicy() || travellingPassengers.size() == 0){ // Station has no sharing policy
+					/*
 					// Taxi is already taken by another passenger
 					if(travellingPassengers.size() != 0){
 						state = REFUSE_PROPOSE;
 						break;
+					}*/
+
+					// TODO doing vvvv
+					// Calculates the number of spacesOccupied in taxi
+					int spacesOccupied = 0;
+					for(int i = 0; i < travellingPassengers.size(); i++){
+						spacesOccupied += travellingPassengers.get(i).getNumberOfPassengers();
 					}
 
+					// Taxi has no free spaces
+					if(spacesOccupied >= maxCapacity){
+						state = REFUSE_PROPOSE;
+						break;
+					}
+
+					score = path.size();
+					score += AStar.PathDuration(
+							AStar.AStarAlgorithm(cellMap,
+									path.lastElement(), passengerData.getStartingCell(),
+									true));
+					state = ACCEPT_PROPOSE;
+					break;
+
+					// TODO pode ser mais rápido para um táxi is buscar um passageiro logo a seguir a entregar outro
+					// do que a atribuir a tarefa a outra táxi que venha de longe busca-lo
+					// ^^^^^^^^^^^^
+
+					/*
 					// Calculates the fastest path to the passenger
 					LinkedList<Cell> path = AStar.AStarAlgorithm(cellMap, positionCell, passengerData.getStartingCell(), true);
 					// Calculates the duration of the path
 					score = AStar.PathDuration(path);
 
-					state = ACCEPT_PROPOSE;
+					state = ACCEPT_PROPOSE;*/
 				}else{ // Station has sharing policy
 					// Calculates the number of spacesOccupied in taxi
 					int spacesOccupied = 0;

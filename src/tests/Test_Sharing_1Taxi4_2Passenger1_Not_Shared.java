@@ -7,8 +7,8 @@ import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 
-public class Test_NoSharing_1Taxi8_1Passenger8 extends Agent{
-	private static final long serialVersionUID = 2372556974535483181L;
+public class Test_Sharing_1Taxi4_2Passenger1_Not_Shared extends Agent{
+	private static final long serialVersionUID = -1148033386803402806L;
 
 	// Holder agents
 	private ArrayList<AgentController> agents;
@@ -24,14 +24,16 @@ public class Test_NoSharing_1Taxi8_1Passenger8 extends Agent{
 		try {
 			// Creates agents
 			// Station
-			AgentController station = cc.createNewAgent("station", "agents.TaxiStationAgent", null);
+			String stationArgsStr = "-sharing,-distance";
+			Object[] stationArgs = stationArgsStr.split(",");
+			AgentController station = cc.createNewAgent("station", "agents.TaxiStationAgent", stationArgs);
 			station.start();
 			agents.add(station);
 
 			sleep(0.3);
 
 			// Taxi
-			String taxiArgsStr = "10,14,8";
+			String taxiArgsStr = "4,0,4";
 			Object[] taxiArgs = taxiArgsStr.split(",");
 			AgentController taxi = cc.createNewAgent("taxi", "agents.TaxiAgent", taxiArgs);
 			taxi.start();
@@ -39,12 +41,21 @@ public class Test_NoSharing_1Taxi8_1Passenger8 extends Agent{
 
 			sleep(0.7);
 
-			// Passenger
-			String passengerArgsStr = "14,21,1,24,8";
-			Object[] passengerArgs = passengerArgsStr.split(",");
-			AgentController passenger = cc.createNewAgent("passenger", "agents.PassengerAgent", passengerArgs);
-			passenger.start();
-			agents.add(passenger);
+			// Passenger1
+			String passenger1ArgsStr = "4,6,15,6,1";
+			Object[] passenger1Args = passenger1ArgsStr.split(",");
+			AgentController passenger1 = cc.createNewAgent("passenger1", "agents.PassengerAgent", passenger1Args);
+			passenger1.start();
+			agents.add(passenger1);
+
+			sleep(0.2);
+
+			// Passenger2
+			String passenger2ArgsStr = "4,17,15,6,1";
+			Object[] passenger2Args = passenger2ArgsStr.split(",");
+			AgentController passenger2 = cc.createNewAgent("passenger2", "agents.PassengerAgent", passenger2Args);
+			passenger2.start();
+			agents.add(passenger2);
 
 		} catch (StaleProxyException e) {
 			e.printStackTrace();

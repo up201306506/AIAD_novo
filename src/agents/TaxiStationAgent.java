@@ -234,7 +234,7 @@ public class TaxiStationAgent extends Agent{
 
 					// Update GUI passenger information
 					updateGUI(passenger);
-					removeFromMapViewGui(passenger);
+					updateTarget(passenger);
 				}else{
 					block();
 				}
@@ -263,7 +263,9 @@ public class TaxiStationAgent extends Agent{
 					// Updates agent tables
 					if(takedownMessage.getConversationId().equals("takedown-passenger")){
 						// Updates GUI
-						removeFromGUI(passengers.get(takedownMessage.getSender()));
+						DataSerializable.PassengerData p = passengers.get(takedownMessage.getSender());
+						removeTargetFromGUI(p);
+						removeFromGUI(p);
 						// Deletes passenger from table
 						passengers.remove(takedownMessage.getSender());
 					}else if(takedownMessage.getConversationId().equals("takedown-taxi")){
@@ -333,9 +335,16 @@ public class TaxiStationAgent extends Agent{
 		mapGUI.updateCanvas();
 	}
 
-	private void removeFromMapViewGui(DataSerializable.PassengerData passenger){
-		// Updates Map View from GUI
+	private void updateTarget(DataSerializable.PassengerData passenger){
+		// Adds target of destination cell to map view
+		mapGUI.updateDestination(passenger);
+		// Removes passenger icon from GUI
 		mapGUI.removeFromMap(passenger.getStartingCell(), "passenger");
+	}
+
+	private void removeTargetFromGUI(DataSerializable.PassengerData passenger){
+		// Updates destination target for this passenger from GUI
+		mapGUI.removeDestination(passenger.getEndingCell());
 	}
 
 	// --------------------------------------------

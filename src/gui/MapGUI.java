@@ -188,7 +188,6 @@ public class MapGUI extends JFrame {
 														"" + passenger.getEndingCell().getCol(),
 														"" + passenger.getNumberOfPassengers() });
 			updateMap(passenger.getStartingCell(), "passenger");
-			updateMap(passenger.getEndingCell(), "destination");
 		} else {
 			for (int i = 0; i < passengersTableModel.getRowCount(); i++) {
 				if (passengersTableModel.getValueAt(i, 0).equals(passenger.getAID().getLocalName())) {
@@ -214,7 +213,7 @@ public class MapGUI extends JFrame {
 													   "" + passenger.getEndingCell().getCol(),
 													   "" + passenger.getNumberOfPassengers() });
 			updateMap(passenger.getStartingCell(), "passenger");
-			updateMap(passenger.getEndingCell(), "destination");
+
 		}
 	}
 
@@ -332,6 +331,10 @@ public class MapGUI extends JFrame {
 		}
 	}
 
+	public void updateDestination(DataSerializable.PassengerData passenger){
+		// Add target to GUI
+		updateMap(passenger.getEndingCell(), "destination");
+	}
 
 	public void removeTaxi(DataSerializable.TaxiData taxi) {
 		// Remove from table
@@ -351,7 +354,6 @@ public class MapGUI extends JFrame {
 		removeFromMap(temp, "taxi");
 	}
 
-
 	public void removePassenger(DataSerializable.PassengerData passenger) {
 		// Remove from table
 		for (int i = passengersTableModel.getRowCount() - 1; i >= 0; i--) {
@@ -365,9 +367,6 @@ public class MapGUI extends JFrame {
 		Cell temp = passengers.get(passenger);
 		if (temp != null)
 			passengers.remove(passenger);
-
-		// Remove from map
-		removeFromMap(temp, "passenger");
 	}
 
 	public void removeDestination(Cell pos) {
