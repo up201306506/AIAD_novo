@@ -3,8 +3,10 @@ package agents;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.PriorityQueue;
 import java.util.Stack;
 
@@ -44,6 +46,7 @@ public class TaxiAgent extends Agent {
 	// Variables
 	private Stack<Cell> path;
 
+	private LinkedList<DataSerializable.PassengerData> queueRequests;
 	private ArrayList<DataSerializable.PassengerData> travellingPassengers;
 
 	private MoveBehaviour currentMoveBehaviour;
@@ -107,6 +110,7 @@ public class TaxiAgent extends Agent {
 		// --------------------------------------------
 		// Variables initialization
 		path = new Stack<>(); // To hold this taxi path
+		queueRequests = new LinkedList<>();
 		travellingPassengers = new ArrayList<>(); // To hold passengers travelling
 
 		// --------------------------------------------
@@ -216,16 +220,54 @@ public class TaxiAgent extends Agent {
 
 						// Re-verifies order
 						if(!passenger.isSharingPolicy() || travellingPassengers.size() == 0){ // Station has no sharing policy
-							if(travellingPassengers.size() > 0){ // Taxi is already taken by another passenger
+							if(false/*capacity == 0*/){ // Taxi is already taken by another passenger
 								// Refuses order
 								ACLMessage refuseOrder = orderMessage.createReply();
 								refuseOrder.setPerformative(ACLMessage.DISCONFIRM);
 								refuseOrder.setContent("refuse-order");
 								myAgent.send(refuseOrder);
-
-								// TODO DOODODODODO
-								System.err.println("refused");
 							}else{ // Taxi is free to take passengers
+								// TODO DOODODODODO vvvv
+								if(travellingPassengers.size() == 0){
+									// Saves important checkpoints for notifications
+									travellingPassengers.add(passenger);
+
+									// Accepts order
+									ACLMessage acceptsOrder = orderMessage.createReply();
+									acceptsOrder.setPerformative(ACLMessage.CONFIRM);
+									acceptsOrder.setContent("accept-order");
+									myAgent.send(acceptsOrder);
+
+									// Calculates the path to travel the passenger
+									Stack<Cell> pathToTravelPassenger = AStar.GetMoveOrders( // Adds the path to the existent one
+											AStar.AStarAlgorithm(cellMap, passenger.getStartingCell(), passenger.getEndingCell(), true));
+
+									// Calculates path from current position to passenger starting cell
+									Stack<Cell> pathToPassenger = AStar.GetMoveOrders(
+											AStar.AStarAlgorithm(cellMap, positionCell, passenger.getStartingCell(), true));
+
+									// Path to travel the passenger is the bottom of the path stack
+									path = pathToTravelPassenger;
+
+									// Add this path to current path stack
+									path = AStar.addStack(path, pathToPassenger);
+
+									// Makes the Taxi move
+									currentMoveBehaviour = new MoveBehaviour(myAgent);
+									addBehaviour(currentMoveBehaviour);
+								}else{
+									queueRequests.add(passenger);
+
+									// Accepts order
+									ACLMessage acceptsOrder = orderMessage.createReply();
+									acceptsOrder.setPerformative(ACLMessage.CONFIRM);
+									acceptsOrder.setContent("accept-order");
+									myAgent.send(acceptsOrder);
+								}
+
+								// TODO ^^^^^^^
+
+								/*
 								// Saves important checkpoints for notifications
 								travellingPassengers.add(passenger);
 
@@ -252,6 +294,7 @@ public class TaxiAgent extends Agent {
 								// Makes the Taxi move
 								currentMoveBehaviour = new MoveBehaviour(myAgent);
 								addBehaviour(currentMoveBehaviour);
+								 */
 							}
 						}else{ // Station has sharing policy
 							if(capacity == 0){ // Taxi has no free space to take more passengers
@@ -600,23 +643,42 @@ public class TaxiAgent extends Agent {
 					}*/
 
 					// TODO doing vvvv
-					// Calculates the number of spacesOccupied in taxi
-					int spacesOccupied = 0;
-					for(int i = 0; i < travellingPassengers.size(); i++){
-						spacesOccupied += travellingPassengers.get(i).getNumberOfPassengers();
+					// Taxi is not traveling
+					if(travellingPassengers.size() == 0){
+						LinkedList<Cell> path = AStar.AStarAlgorithm(cellMap, positionCell, passengerData.getStartingCell(), true);
+						// Calculates the duration of the path
+						score = AStar.PathDuration(path);
+					}else{
+						// If taxi is already traveling, the score to pick next passenger needs the score of the current path
+						score = AStar.PathDuration(
+								AStar.AStarAlgorithm(cellMap,
+										positionCell, travellingPassengers.get(0).getEndingCell(),
+										passengerData.isDiminishingDuration()));
+						// Taxi has no requests to travel
+						if(queueRequests.size() == 0){
+							// Finishing path in addition to travel to next passenger
+							score += AStar.PathDuration(
+									AStar.AStarAlgorithm(cellMap,
+											path.lastElement(), passengerData.getStartingCell(),
+											true)) +
+									AStar.PathDuration(
+											AStar.AStarAlgorithm(cellMap,
+													passengerData.getStartingCell(), passengerData.getEndingCell(),
+													passengerData.isDiminishingDuration()));
+						}else{
+							Cell lastPosition = path.lastElement();
+							for(int i = 0; i < queueRequests.size(); i++){
+								// Score of traveling every passenger in queue
+								score += AStar.PathDuration(
+										AStar.AStarAlgorithm(cellMap,
+												lastPosition, queueRequests.get(i).getStartingCell(),
+												passengerData.isDiminishingDuration()));
+								// Last position of path to next iteration is ending cell of prior passenger
+								lastPosition = queueRequests.get(i).getEndingCell();
+							}
+						}
 					}
 
-					// Taxi has no free spaces
-					if(spacesOccupied >= maxCapacity){
-						state = REFUSE_PROPOSE;
-						break;
-					}
-
-					score = path.size();
-					score += AStar.PathDuration(
-							AStar.AStarAlgorithm(cellMap,
-									path.lastElement(), passengerData.getStartingCell(),
-									true));
 					state = ACCEPT_PROPOSE;
 					break;
 
@@ -727,7 +789,30 @@ public class TaxiAgent extends Agent {
 						state = DONE_MOVING;
 						break;
 					}else{ // Taxi has no move orders and it is not in taxi station
-						path = AStar.GetMoveOrders(AStar.AStarAlgorithm(cellMap, positionCell, new Cell(0, 0, 0, false), true));
+						//path = AStar.GetMoveOrders(AStar.AStarAlgorithm(cellMap, positionCell, new Cell(0, 0, 0, false), true));
+
+						// TODO vv
+						if(queueRequests.size() == 0){
+							path = AStar.GetMoveOrders(AStar.AStarAlgorithm(cellMap, positionCell, new Cell(0, 0, 0, false), true));
+						}else{
+							DataSerializable.PassengerData passenger = queueRequests.remove();
+							travellingPassengers.add(passenger);
+
+							// Calculates the path to travel the passenger
+							Stack<Cell> pathToTravelPassenger = AStar.GetMoveOrders( // Adds the path to the existent one
+									AStar.AStarAlgorithm(cellMap, passenger.getStartingCell(), passenger.getEndingCell(), true));
+
+							// Calculates path from current position to passenger starting cell
+							Stack<Cell> pathToPassenger = AStar.GetMoveOrders(
+									AStar.AStarAlgorithm(cellMap, positionCell, passenger.getStartingCell(), true));
+
+							// Path to travel the passenger is the bottom of the path stack
+							path = pathToTravelPassenger;
+
+							// Add this path to current path stack
+							path = AStar.addStack(path, pathToPassenger);
+						}
+						// TODO ^^^
 					}
 				}
 

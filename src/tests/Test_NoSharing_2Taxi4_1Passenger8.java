@@ -47,7 +47,7 @@ public class Test_NoSharing_2Taxi4_1Passenger8 extends Agent{
 			sleep(0.7);
 
 			// Passenger
-			String passengerArgsStr = "10,3,18,14,8";
+			String passengerArgsStr = "10,3,18,31,8";
 			Object[] passengerArgs = passengerArgsStr.split(",");
 			AgentController passenger = cc.createNewAgent("passenger", "agents.PassengerAgent", passengerArgs);
 			passenger.start();

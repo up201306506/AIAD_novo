@@ -2,6 +2,7 @@ package agents;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.PriorityQueue;
 
 import gui.MapGUI;
@@ -498,6 +499,12 @@ public class TaxiStationAgent extends Agent{
 				break;
 			case ORDER_PICKUP:
 				AID taxiToOrder = null;
+
+				Iterator<TaxiScore> it = taxiScore.iterator();
+				while(it.hasNext()){
+					TaxiScore n = it.next();
+					System.err.println(passengerData.getAID().getLocalName() + " | " + n.getTaxiAID().getLocalName() + " - " + n.score);
+				}
 
 				// If there is not any valid taxi to order the passenger's pickup
 				if(taxiScore.isEmpty()){
