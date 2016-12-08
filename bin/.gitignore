@@ -1,2 +1,9 @@
 /gui/
+<<<<<<< HEAD
 /utils/
+=======
+/agents/
+/utils/
+/Main.class
+/Main$Temp.class
+>>>>>>> work

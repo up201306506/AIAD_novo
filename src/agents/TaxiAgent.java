@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.PriorityQueue;
 import java.util.Stack;
 
 import jade.core.AID;
@@ -21,9 +23,13 @@ import jade.lang.acl.UnreadableException;
 import utils.AStar;
 import utils.Cell;
 import utils.DataSerializable;
+import utils.Cell.CellValue;
 
 public class TaxiAgent extends Agent {
 	private static final long serialVersionUID = 163911234618964268L;
+
+	// Static configuration value
+	private static float COMPENSATION_VALUE = 0.25f;
 
 	// Taxi dynamic variables
 	private DFAgentDescription dfd;
@@ -210,7 +216,7 @@ public class TaxiAgent extends Agent {
 						DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) orderMessage.getContentObject();
 
 						// Re-verifies order
-						if(!passenger.isSharingPolicy()){ // Station has no sharing policy
+						if(!passenger.isSharingPolicy() || travellingPassengers.size() == 0){ // Station has no sharing policy TODO cuidado com o size
 							if(travellingPassengers.size() > 0){ // Taxi is already taken by another passenger
 								// Refuses order
 								ACLMessage refuseOrder = orderMessage.createReply();
@@ -254,6 +260,77 @@ public class TaxiAgent extends Agent {
 								myAgent.send(refuseOrder);
 							}else{ // Taxi has free spaces
 								// TODO ainda nao esta feito
+								// Saves important checkpoints for notifications
+								travellingPassengers.add(passenger);
+
+								// Accepts order
+								ACLMessage acceptsOrder = orderMessage.createReply();
+								acceptsOrder.setPerformative(ACLMessage.CONFIRM);
+								acceptsOrder.setContent("accept-order");
+								myAgent.send(acceptsOrder);
+
+								// TODO ????? vvvvv
+								// Important path points
+								PriorityQueue<Cell.CellValue> pathPoints = new PriorityQueue<>();
+
+								// Iterate through all passengers that need to be pickup
+								for(DataSerializable.PassengerData p : travellingPassengers){
+									// Adds p starting cell to path points
+									if(!p.wasPickedUp()){
+										if(p.isDiminishingDuration()){
+											pathPoints.add(new Cell.CellValue(p.getStartingCell(),
+													AStar.PathDuration(
+															AStar.AStarAlgorithm(cellMap,
+																	positionCell, p.getStartingCell(),
+																	p.isDiminishingDuration()))));
+										}else{
+											pathPoints.add(new Cell.CellValue(p.getStartingCell(),
+													AStar.PathDistance(
+															AStar.AStarAlgorithm(cellMap,
+																	positionCell, p.getStartingCell(),
+																	p.isDiminishingDuration()))));
+										}
+									}
+
+									// Adds ending cell to path points
+									if(p.isDiminishingDuration()){
+										pathPoints.add(new Cell.CellValue(p.getEndingCell(),
+												AStar.PathDuration(
+														AStar.AStarAlgorithm(cellMap,
+																positionCell, p.getEndingCell(),
+																p.isDiminishingDuration()))));
+									}else{
+										pathPoints.add(new Cell.CellValue(p.getEndingCell(),
+												AStar.PathDistance(
+														AStar.AStarAlgorithm(cellMap,
+																positionCell, p.getEndingCell(),
+																p.isDiminishingDuration()))));
+									}
+								}
+
+								// Creates holder for paths
+								Stack<Stack<Cell>> allPaths = new Stack<>();
+								// Holds last path position
+								Cell lastPathPosition = positionCell;
+								do{
+									allPaths.push(
+											AStar.GetMoveOrders(
+													AStar.AStarAlgorithm(cellMap,
+															lastPathPosition, pathPoints.remove().getCell(),
+															passenger.isDiminishingDuration())));
+								}while(!pathPoints.isEmpty());
+
+								// Path is the bottom of the path stack
+								path = allPaths.pop();
+
+								// Add this path to current path stack
+								while(!allPaths.isEmpty()){
+									path = AStar.addStack(path, allPaths.pop());
+								}
+
+								// Makes the Taxi move
+								currentMoveBehaviour = new MoveBehaviour(myAgent);
+								addBehaviour(currentMoveBehaviour);
 							}
 						}
 					} catch (UnreadableException e) {
@@ -362,6 +439,112 @@ public class TaxiAgent extends Agent {
 			travellingPassengers.remove(passenger);
 	}
 
+	private boolean isAdvantageousAux(DataSerializable.PassengerData a, DataSerializable.PassengerData b){
+		// Hold path distances
+		int originalDistanceA = 0, originalDistanceB = 0;
+
+		// Calculates original path for each passenger
+		LinkedList<Cell> pathA = AStar.AStarAlgorithm(cellMap, a.getStartingCell(), a.getEndingCell(), a.isDiminishingDuration());
+		LinkedList<Cell> pathB = AStar.AStarAlgorithm(cellMap, b.getStartingCell(), b.getEndingCell(), b.isDiminishingDuration());
+
+		// Hold path combinations distances
+		int distanceABA = 0, distanceABBA = 0, distanceBAB = 0;
+
+		// Calculates oath combinations for each passenger
+		LinkedList<Cell> pathAiBi = AStar.AStarAlgorithm(cellMap, a.getStartingCell(), b.getStartingCell(), a.isDiminishingDuration());
+		LinkedList<Cell> pathBiAj = AStar.AStarAlgorithm(cellMap, b.getStartingCell(), a.getEndingCell(), a.isDiminishingDuration());
+		LinkedList<Cell> pathBjAj = AStar.AStarAlgorithm(cellMap, b.getEndingCell(), a.getEndingCell(), a.isDiminishingDuration());
+
+		// Calculates path costs
+		if(a.isDiminishingDuration()){
+			originalDistanceA = AStar.PathDuration(pathA);
+			originalDistanceB = AStar.PathDuration(pathB);
+
+			distanceABA = AStar.PathDuration(pathAiBi) + AStar.PathDuration(pathBiAj);
+			distanceABBA = AStar.PathDuration(pathAiBi) + AStar.PathDuration(pathB) + AStar.PathDuration(pathBjAj);
+
+			distanceBAB = AStar.PathDuration(pathBiAj) + AStar.PathDuration(pathBjAj);
+		}else{
+			originalDistanceA = AStar.PathDistance(pathA);
+			originalDistanceB = AStar.PathDistance(pathB);
+
+			distanceABA = AStar.PathDistance(pathAiBi) + AStar.PathDistance(pathBiAj);
+			distanceABBA = AStar.PathDistance(pathAiBi) + AStar.PathDistance(pathB) + AStar.PathDistance(pathBjAj);
+
+			distanceBAB = AStar.PathDistance(pathBiAj) + AStar.PathDistance(pathBjAj);
+		}
+
+		// Minimal distance to travel both passengers for A and B, respectively
+		int forA = Math.min(distanceABA, distanceABBA);
+		int forB = distanceBAB;
+
+		// If minimal distance to travel is a lot bigger than the distance of original path
+		// It is not worthy to travel another passenger
+		if((forA / originalDistanceA) - 1 > COMPENSATION_VALUE)
+			return false;
+
+		if((forB / originalDistanceB) - 1 > COMPENSATION_VALUE)
+			return false;
+
+		// Returns true if it is advantageous for both passengers
+		return true;
+	}
+
+	private boolean isAdvantageous(DataSerializable.PassengerData passenger){
+		// Array of all passengers
+		ArrayList<DataSerializable.PassengerData> passengersToComapareTo = new ArrayList<>(travellingPassengers);
+		passengersToComapareTo.add(passenger);
+
+		// Gets all combinations for passengers
+		ArrayList<ArrayList<DataSerializable.PassengerData>> temp = powerSet(passengersToComapareTo);
+		ArrayList<ArrayList<DataSerializable.PassengerData>> passengersCombinations = new ArrayList<>();
+		for(ArrayList<DataSerializable.PassengerData> arr : temp){
+			if(arr.size() == 2)
+				passengersCombinations.add(arr);
+		}
+
+		// Holds results of advantages
+		ArrayList<Boolean> result = new ArrayList<>();
+		for(ArrayList<DataSerializable.PassengerData> passengerCombination : passengersCombinations){
+			result.add(isAdvantageousAux(passengerCombination.get(0), passengerCombination.get(1)));
+		}
+
+		// Verifies results
+		for(int i = 0; i < result.size(); i++){
+			// Returns false if it is not advantageous for at least one passenger
+			if(!result.get(i))
+				return false;
+		}
+
+		// Returns true if all passenger agree that taking the new passenger is advantageous
+		return true;
+	}
+
+	// Aux functions
+	private ArrayList<ArrayList<DataSerializable.PassengerData>> powerSet(ArrayList<DataSerializable.PassengerData> originalArrayList) {
+		ArrayList<ArrayList<DataSerializable.PassengerData>> arrayLists = new ArrayList<>();
+
+		if (originalArrayList.isEmpty()) {
+			arrayLists.add(new ArrayList<DataSerializable.PassengerData>());
+			return arrayLists;
+		}
+
+		List<DataSerializable.PassengerData> list = new ArrayList<>(originalArrayList);
+		DataSerializable.PassengerData head = list.get(0);
+
+		ArrayList<DataSerializable.PassengerData> rest = new ArrayList<>(list.subList(1, list.size()));
+		for (ArrayList<DataSerializable.PassengerData> set : powerSet(rest)) {
+			ArrayList<DataSerializable.PassengerData> newArrayList = new ArrayList<>();
+			newArrayList.add(head);
+			newArrayList.addAll(set);
+
+			arrayLists.add(newArrayList);
+			arrayLists.add(set);
+		}
+
+		return arrayLists;
+	}
+
 	// --------------------------------------------
 	// Extended behaviours
 	// Process station proposes
@@ -397,7 +580,7 @@ public class TaxiAgent extends Agent {
 		public void action() {
 			switch (state) {
 			case PROCESS_PROPOSE:
-				if(!passengerData.isSharingPolicy()){ // Station has no sharing policy
+				if(!passengerData.isSharingPolicy() || travellingPassengers.size() == 0){ // Station has no sharing policy TODO cuidado com o size
 					// Taxi is already taken by another passenger
 					if(travellingPassengers.size() != 0){
 						state = REFUSE_PROPOSE;
@@ -423,8 +606,11 @@ public class TaxiAgent extends Agent {
 						break;
 					}
 
-					// TODO verify if it is advantageous
-
+					// Verifies if it is advantageous to travel this passenger
+					if(!isAdvantageous(passengerData)){
+						state = REFUSE_PROPOSE;
+						break;
+					}
 
 					// Calculates the fastest path to the passenger
 					LinkedList<Cell> path = AStar.AStarAlgorithm(cellMap, positionCell, passengerData.getStartingCell(), true);
