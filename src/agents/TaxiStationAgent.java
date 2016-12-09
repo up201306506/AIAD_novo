@@ -2,6 +2,7 @@ package agents;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.PriorityQueue;
 
 import gui.MapGUI;
@@ -10,13 +11,19 @@ import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.WakerBehaviour;
+import jade.domain.AMSService;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.AMSAgentDescription;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.SearchConstraints;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
+import jade.wrapper.AgentContainer;
+import jade.wrapper.AgentController;
+import jade.wrapper.ControllerException;
 import utils.Cell;
 import utils.DataSerializable;
 
@@ -298,6 +305,26 @@ public class TaxiStationAgent extends Agent{
 		// Disposes GUI
 		if(mapGUI != null)
 			mapGUI.dispose();
+		// Kill all agents
+		AMSAgentDescription [] agents = null;
+		SearchConstraints c = new SearchConstraints();
+		c.setMaxResults(new Long(-1));
+		try {
+			agents = AMSService.search(this, new AMSAgentDescription(), c);
+			for(int i = 0; i < agents.length; i++){
+				AID agentID = agents[i].getName();
+				if(!agentID.getLocalName().equals("ams")
+						&& !agentID.getLocalName().equals("df")
+						&& !agentID.getLocalName().equals("rma")){
+					AgentController ac = getContainerController().getAgent(agentID.getLocalName());
+					if(ac != null){
+					}
+				}
+			}
+		} catch (FIPAException e) {
+		} catch (ControllerException e) {
+		} catch (Exception e){
+		}
 		// Deregister from the yellow pages
 		try {
 			if(DFService.search(this, dfd).length != 0 && mapGUI != null)
