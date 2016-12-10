@@ -1,5 +1,7 @@
 package agents;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,7 +23,6 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
-import jade.wrapper.AgentContainer;
 import jade.wrapper.AgentController;
 import jade.wrapper.ControllerException;
 import utils.Cell;
@@ -43,6 +44,12 @@ public class TaxiStationAgent extends Agent{
 	// Variable holders
 	private HashMap<AID, DataSerializable.TaxiData> taxis;
 	private HashMap<AID, DataSerializable.PassengerData> passengers;
+
+	// Statistics Variables
+	private HashMap<AID, Long> requestedPassengerTimes;
+	private HashMap<AID, Long> pickedPassengerTimes;
+	private HashMap<AID, Long> deliveredPassengerTimes;
+	private HashMap<AID, Float> costTravelledPassengers;
 
 	//---------------------------------------------
 	@Override
@@ -107,6 +114,11 @@ public class TaxiStationAgent extends Agent{
 
 		taxis = new HashMap<>();
 		passengers = new HashMap<>();
+
+		requestedPassengerTimes = new HashMap<>();
+		pickedPassengerTimes = new HashMap<>();
+		deliveredPassengerTimes = new HashMap<>();
+		costTravelledPassengers = new HashMap<>();
 
 		// --------------------------------------------
 		// Yellow pages
@@ -178,6 +190,9 @@ public class TaxiStationAgent extends Agent{
 						DataSerializable.PassengerData passenger = (DataSerializable.PassengerData) requestMessage.getContentObject();
 						passengers.put(requestMessage.getSender(), passenger);
 
+						// Notes the request time
+						requestedPassengerTimes.put(requestMessage.getSender(), System.currentTimeMillis());
+
 						// Update passenger GUI information
 						updateGUI(passenger);
 
@@ -239,6 +254,9 @@ public class TaxiStationAgent extends Agent{
 					// Flags passenger as picked up
 					passenger.flagPickUp();
 
+					// Notes the picked passenger time
+					pickedPassengerTimes.put(pickedPassengerMessage.getSender(), System.currentTimeMillis());
+
 					// Update GUI passenger information
 					updateGUI(passenger);
 					updateTarget(passenger);
@@ -258,17 +276,13 @@ public class TaxiStationAgent extends Agent{
 				MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.CANCEL);
 				ACLMessage takedownMessage = myAgent.receive(messageTemplate);
 				if(takedownMessage != null){
-					// Verifies content
-					if(!takedownMessage.getContent().equals("takedown")){
-						try{
-							throw new Exception("#S >> " + getLocalName() + " >> Unexpected message handling takedowns");
-						}catch(Exception e){
-							System.err.println(e.getMessage());
-						}
-					}
-
 					// Updates agent tables
 					if(takedownMessage.getConversationId().equals("takedown-passenger")){
+						// Notes the takedown timer
+						deliveredPassengerTimes.put(takedownMessage.getSender(), System.currentTimeMillis());
+						// Notes what passenger has paid
+						costTravelledPassengers.put(takedownMessage.getSender(), Float.parseFloat(takedownMessage.getContent()));
+
 						// Updates GUI
 						DataSerializable.PassengerData p = passengers.get(takedownMessage.getSender());
 						removeTargetFromGUI(p);
@@ -372,6 +386,24 @@ public class TaxiStationAgent extends Agent{
 	private void removeTargetFromGUI(DataSerializable.PassengerData passenger){
 		// Updates destination target for this passenger from GUI
 		mapGUI.removeDestination(passenger.getEndingCell());
+	}
+
+	private void printStatistics(){
+		try {
+			File statisticsFile = new File(getLocalName() + ".txt");
+			FileOutputStream fos = new FileOutputStream(statisticsFile, false);
+			statisticsFile.createNewFile();
+
+			for(Map.Entry<AID, Long> entry : requestedPassengerTimes.entrySet()){
+				AID passenger = entry.getKey();
+
+				System.out.println(passenger.getLocalName() + " - RP: " + (pickedPassengerTimes.get(passenger) - requestedPassengerTimes.get(passenger))
+						+ " | PD: " + (deliveredPassengerTimes.get(passenger) - pickedPassengerTimes.get(passenger))
+						+ " | Payed: " + costTravelledPassengers.get(passenger));
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	// --------------------------------------------
