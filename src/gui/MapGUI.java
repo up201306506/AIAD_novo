@@ -1,19 +1,24 @@
 package gui;
 
+import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Random;
 
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.table.DefaultTableModel;
 
 import utils.Cell;
@@ -38,6 +43,11 @@ public class MapGUI extends JFrame {
 
 	// Map View
 	private Canvas canvas;
+	
+	// Statistics View
+	private JPanel statsPanel;
+	private JButton statsButton;
+	private JTextArea statsTextArea;
 
 	// Variables
 	private byte[][] map;
@@ -77,10 +87,33 @@ public class MapGUI extends JFrame {
 
 		tablesPanel.add(panel1);
 		tablesPanel.add(panel2);
+		
+		statsPanel = new JPanel();
+		
+		statsTextArea = new JTextArea();
+		statsTextArea.setLineWrap(true);
+		statsTextArea.setEditable(false);
+		
+		statsButton = new JButton("Print Statistics");
+		statsButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// chama isto para introduzires texto na statsTextArea (elimina o ja la estava)
+				statsTextArea.setText("LUL OH MY GOD\n");
+				
+				// chama isto para acrescentar texto na statsTextArea (NAO elimina o ja la estava)
+				statsTextArea.append("I GOT APPENDED\n");
+			}
+		});
+		
+		statsPanel.setLayout(new BorderLayout());
+		statsPanel.add(statsTextArea, BorderLayout.CENTER);
+		statsPanel.add(statsButton, BorderLayout.PAGE_END);
 
 		tabbedPanel = new JTabbedPane();
 		tabbedPanel.addTab("Tables View", tablesPanel);
 		tabbedPanel.addTab("Map View", canvas);
+		tabbedPanel.addTab("Statistics", statsPanel);
 
 		setContentPane(tabbedPanel);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
