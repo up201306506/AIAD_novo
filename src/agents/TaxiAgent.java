@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Stack;
 
@@ -29,6 +30,7 @@ public class TaxiAgent extends Agent {
 
 	// Static configuration value
 	private static float COMPENSATION_VALUE = 0.2f;
+	private static int VALUE_BY_SECOND = 4;
 
 	// Taxi dynamic variables
 	private DFAgentDescription dfd;
@@ -46,6 +48,8 @@ public class TaxiAgent extends Agent {
 
 	private LinkedList<DataSerializable.PassengerData> queueRequests;
 	private ArrayList<DataSerializable.PassengerData> travellingPassengers;
+
+	private HashMap<AID, Float> payingMap;
 
 	private MoveBehaviour currentMoveBehaviour;
 
@@ -110,6 +114,7 @@ public class TaxiAgent extends Agent {
 		path = new Stack<>(); // To hold this taxi path
 		queueRequests = new LinkedList<>();
 		travellingPassengers = new ArrayList<>(); // To hold passengers travelling
+		payingMap = new HashMap<>();
 
 		// --------------------------------------------
 		// Read from arguments
@@ -372,7 +377,7 @@ public class TaxiAgent extends Agent {
 		send(takedownMessage);
 		// Deregister from the yellow pages
 		try {
-			if(DFService.search(this, dfd).length != 0 && positionCell != null)
+			if(DFService.search(this, dfd).length != 0 && dfd != null)
 				DFService.deregister(this);
 		}
 		catch (FIPAException fe) {
@@ -387,6 +392,8 @@ public class TaxiAgent extends Agent {
 		// Display movement
 		//System.out.println("-T >> " + getLocalName() + " >> From: " + positionCell + ", to: " + nextPosition);
 
+		// Holds last taxi position
+		Cell lastPosition = positionCell;
 		// Updates taxi position
 		positionCell = nextPosition;
 
@@ -395,6 +402,11 @@ public class TaxiAgent extends Agent {
 
 		// Checks if any passenger was picked up or traveled
 		for(DataSerializable.PassengerData passenger : travellingPassengers){
+			if(passenger.wasPickedUp()){
+				payingMap.put(passenger.getAID(),
+						payingMap.get(passenger.getAID()) + ((VALUE_BY_SECOND / payingMap.size()) * (lastPosition.getDuration() / 1000f)));
+			}
+
 			// If taxi is picking up passenger
 			if(passenger.getStartingCell().equals(positionCell)){
 				int numberOfPassengersToTravel;
@@ -419,6 +431,9 @@ public class TaxiAgent extends Agent {
 				// Displays that this taxi picked up a passenger
 				System.out.println("-T >> " + getLocalName() + " >> Just picked passenger: " + passenger.getAID().getLocalName());
 
+				// Starts accounting passenger debt
+				payingMap.put(passenger.getAID(), 0f);
+
 				// Informs passenger that taxi will pick up
 				ACLMessage pickupPassengerMessage = new ACLMessage(ACLMessage.INFORM);
 				pickupPassengerMessage.addReceiver(passenger.getAID());
@@ -437,11 +452,14 @@ public class TaxiAgent extends Agent {
 				// Displays that this taxi delivered a passenger
 				System.out.println("-T >> " + getLocalName() + " >> Just delivered passenger: " + passenger.getAID().getLocalName());
 
+				// Removes passenger from debt paying list
+				float cost = payingMap.remove(passenger.getAID());
+
 				// Informs passenger that taxi just traveled the passenger
 				ACLMessage deliveredPassenger = new ACLMessage(ACLMessage.INFORM);
 				deliveredPassenger.addReceiver(passenger.getAID());
 				deliveredPassenger.setConversationId("delivering-passenger");
-				deliveredPassenger.setContent("delivered");
+				deliveredPassenger.setContent("" + cost);
 				send(deliveredPassenger);
 			}
 		}

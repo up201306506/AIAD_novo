@@ -33,6 +33,8 @@ public class PassengerAgent extends Agent {
 
 	private HashMap<Cell, Cell> cellMap;
 
+	private float costOfTravelling;
+
 	protected void setup() {
 		// Search for taxi station
 		DFAgentDescription dfAgentDescription = new DFAgentDescription();
@@ -164,8 +166,6 @@ public class PassengerAgent extends Agent {
 
 		send(requestTaxi);
 
-		// TODO start timer, parallel behaviour
-
 		System.out.println("=P >> " + getLocalName() + " >> State is: I: "
 				+ startingCell.toString() + " | F: " + endingCell.toString()
 				+ " | N - " + numberOfPassengers);
@@ -231,13 +231,7 @@ public class PassengerAgent extends Agent {
 				ACLMessage finishedTravelMessage = myAgent.receive(messageTemplate);
 				if(finishedTravelMessage != null){
 					// Verifies content
-					if(!finishedTravelMessage.getContent().equals("delivered")){
-						try{
-							throw new Exception("=P >> " + getLocalName() + " >> Received unexpected message");
-						}catch(Exception e){
-							System.err.println(e.getMessage());
-						}
-					}
+					costOfTravelling = Float.parseFloat(finishedTravelMessage.getContent());
 
 					// Displays that this passenger was delivered by a taxi
 					System.out.println("=P >> " + getLocalName() + " >> Was delivered by taxi: " + finishedTravelMessage.getSender().getLocalName());
@@ -260,7 +254,7 @@ public class PassengerAgent extends Agent {
 		ACLMessage takedownMessage = new ACLMessage(ACLMessage.CANCEL);
 		takedownMessage.addReceiver(stationAID);
 		takedownMessage.setConversationId("takedown-passenger");
-		takedownMessage.setContent("takedown");
+		takedownMessage.setContent("" + costOfTravelling);
 		send(takedownMessage);
 		// Deregister from the yellow pages
 		try {
