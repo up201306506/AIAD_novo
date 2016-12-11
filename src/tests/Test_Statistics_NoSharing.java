@@ -7,8 +7,8 @@ import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 
-public class Test_Sharing_3Taxi4_NPassengerN extends Agent {
-	private static final long serialVersionUID = 3120211474419082701L;
+public class Test_Statistics_NoSharing extends Agent{
+	private static final long serialVersionUID = -4647279710787830380L;
 
 	// Holder agents
 	private ArrayList<AgentController> agents;
@@ -24,9 +24,7 @@ public class Test_Sharing_3Taxi4_NPassengerN extends Agent {
 		try {
 			// Creates agents
 			// Station
-			String stationArgsStr = "-sharing,-distance";
-			Object[] stationArgs = stationArgsStr.split(",");
-			AgentController station = cc.createNewAgent("station", "agents.TaxiStationAgent", stationArgs);
+			AgentController station = cc.createNewAgent("station-no-sharing", "agents.TaxiStationAgent", null);
 			station.start();
 			agents.add(station);
 
@@ -40,63 +38,95 @@ public class Test_Sharing_3Taxi4_NPassengerN extends Agent {
 			agents.add(taxi1);
 
 			// Taxi2
-			String taxi2ArgsStr = "18,27,4";
+			String taxi2ArgsStr = "19,1,4";
 			Object[] taxi2Args = taxi2ArgsStr.split(",");
 			AgentController taxi2 = cc.createNewAgent("taxi2", "agents.TaxiAgent", taxi2Args);
 			taxi2.start();
 			agents.add(taxi2);
 
 			// Taxi3
-			String taxi3ArgsStr = "4,29,4";
+			String taxi3ArgsStr = "0,32,4";
 			Object[] taxi3Args = taxi3ArgsStr.split(",");
 			AgentController taxi3 = cc.createNewAgent("taxi3", "agents.TaxiAgent", taxi3Args);
 			taxi3.start();
 			agents.add(taxi3);
 
+			// Taxi4
+			String taxi4ArgsStr = "31,4,4";
+			Object[] taxi4Args = taxi4ArgsStr.split(",");
+			AgentController taxi4 = cc.createNewAgent("taxi4", "agents.TaxiAgent", taxi4Args);
+			taxi4.start();
+			agents.add(taxi4);
+
+			// Taxi5
+			String taxi5ArgsStr = "23,17,4";
+			Object[] taxi5Args = taxi5ArgsStr.split(",");
+			AgentController taxi5 = cc.createNewAgent("taxi5", "agents.TaxiAgent", taxi5Args);
+			taxi5.start();
+			agents.add(taxi5);
+
 			sleep(0.7);
 
 			// Passenger1
-			String passenger1ArgsStr = "10,3,18,14,8";
+			String passenger1ArgsStr = "4,6,4,11,1";
 			Object[] passenger1Args = passenger1ArgsStr.split(",");
 			AgentController passenger1 = cc.createNewAgent("passenger1", "agents.PassengerAgent", passenger1Args);
 			passenger1.start();
 			agents.add(passenger1);
 
-			sleep(0.2);
+			sleep(0.1);
 
 			// Passenger2
-			String passenger2ArgsStr = "14,12,0,6,3";
+			String passenger2ArgsStr = "4,8,4,10,1";
 			Object[] passenger2Args = passenger2ArgsStr.split(",");
 			AgentController passenger2 = cc.createNewAgent("passenger2", "agents.PassengerAgent", passenger2Args);
 			passenger2.start();
 			agents.add(passenger2);
 
-			sleep(0.2);
+			sleep(0.1);
 
 			// Passenger3
-			String passenger3ArgsStr = "35,34,30,37,1";
+			String passenger3ArgsStr = "4,32,4,28,5";
 			Object[] passenger3Args = passenger3ArgsStr.split(",");
 			AgentController passenger3 = cc.createNewAgent("passenger3", "agents.PassengerAgent", passenger3Args);
 			passenger3.start();
 			agents.add(passenger3);
 
-			sleep(30);
+			sleep(0.1);
 
 			// Passenger4
-			String passenger4ArgsStr = "37,12,23,18,5";
+			String passenger4ArgsStr = "34,4,34,11,1";
 			Object[] passenger4Args = passenger4ArgsStr.split(",");
 			AgentController passenger4 = cc.createNewAgent("passenger4", "agents.PassengerAgent", passenger4Args);
 			passenger4.start();
 			agents.add(passenger4);
 
-			sleep(0.2);
+			sleep(0.1);
 
 			// Passenger5
-			String passenger5ArgsStr = "2,32,30,2,2";
+			String passenger5ArgsStr = "36,5,34,10,1";
 			Object[] passenger5Args = passenger5ArgsStr.split(",");
 			AgentController passenger5 = cc.createNewAgent("passenger5", "agents.PassengerAgent", passenger5Args);
 			passenger5.start();
 			agents.add(passenger5);
+
+			sleep(0.1);
+
+			// Passenger6
+			String passenger6ArgsStr = "24,19,30,23,1";
+			Object[] passenger6Args = passenger6ArgsStr.split(",");
+			AgentController passenger6 = cc.createNewAgent("passenger6", "agents.PassengerAgent", passenger6Args);
+			passenger6.start();
+			agents.add(passenger6);
+
+			sleep(0.1);
+
+			// Passenger7
+			String passenger7ArgsStr = "26,25,23,23,1";
+			Object[] passenger7Args = passenger7ArgsStr.split(",");
+			AgentController passenger7 = cc.createNewAgent("passenger7", "agents.PassengerAgent", passenger7Args);
+			passenger7.start();
+			agents.add(passenger7);
 
 		} catch (StaleProxyException e) {
 			e.printStackTrace();

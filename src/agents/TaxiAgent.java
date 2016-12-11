@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Stack;
 
@@ -261,6 +260,10 @@ public class TaxiAgent extends Agent {
 								myAgent.send(acceptsOrder);
 							}
 						}else{ // Station has sharing policy
+
+
+
+
 							if(capacity == 0){ // Taxi has no free space to take more passengers
 								// Refuses order
 								ACLMessage refuseOrder = orderMessage.createReply();

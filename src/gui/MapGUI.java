@@ -21,6 +21,7 @@ import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.table.DefaultTableModel;
 
+import agents.TaxiStationAgent;
 import utils.Cell;
 import utils.DataSerializable;
 
@@ -43,27 +44,35 @@ public class MapGUI extends JFrame {
 
 	// Map View
 	private Canvas canvas;
-	
+
 	// Statistics View
 	private JPanel statsPanel;
 	private JButton statsButton;
 	private JTextArea statsTextArea;
 
 	// Variables
+	private TaxiStationAgent station;
+
 	private byte[][] map;
 	private int[][] durationMap;
 	private HashMap<DataSerializable.TaxiData, Cell> taxis;
 	private HashMap<DataSerializable.PassengerData, Cell> passengers;
 
+	private String statisticsstr;
+
 	// Constructor
-	public MapGUI() {
+	public MapGUI(final TaxiStationAgent station) {
 		super("Map");
+
+		this.station = station;
 
 		loadMap();
 		loadTimes();
 
 		taxis = new HashMap<>();
 		passengers = new HashMap<>();
+
+		statisticsstr = "No statistics!";
 
 		canvas = new Canvas(map);
 
@@ -87,25 +96,29 @@ public class MapGUI extends JFrame {
 
 		tablesPanel.add(panel1);
 		tablesPanel.add(panel2);
-		
+
 		statsPanel = new JPanel();
-		
+
 		statsTextArea = new JTextArea();
 		statsTextArea.setLineWrap(true);
 		statsTextArea.setEditable(false);
-		
+
 		statsButton = new JButton("Print Statistics");
 		statsButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				// chama isto para introduzires texto na statsTextArea (elimina o ja la estava)
-				statsTextArea.setText("LUL OH MY GOD\n");
-				
-				// chama isto para acrescentar texto na statsTextArea (NAO elimina o ja la estava)
-				statsTextArea.append("I GOT APPENDED\n");
+				// Clear text area
+				statsTextArea.setText("");
+				// Gets statistics from station
+				statisticsstr = station.printStatistics();
+				if(statisticsstr.equals("")){
+					statisticsstr = "No statistics to show!";
+				}
+				// Prints all statistics
+				statsTextArea.append(statisticsstr);
 			}
 		});
-		
+
 		statsPanel.setLayout(new BorderLayout());
 		statsPanel.add(statsTextArea, BorderLayout.CENTER);
 		statsPanel.add(statsButton, BorderLayout.PAGE_END);

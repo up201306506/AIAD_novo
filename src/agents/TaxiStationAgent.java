@@ -3,6 +3,8 @@ package agents;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -109,7 +111,7 @@ public class TaxiStationAgent extends Agent{
 		}
 
 		// Initializes GUI
-		mapGUI = new MapGUI();
+		mapGUI = new MapGUI(this);
 		cellMap = Cell.mapToCellMap(mapGUI.getMap(), mapGUI.getDurationMap());
 
 		taxis = new HashMap<>();
@@ -388,22 +390,59 @@ public class TaxiStationAgent extends Agent{
 		mapGUI.removeDestination(passenger.getEndingCell());
 	}
 
-	private void printStatistics(){
+	public String printStatistics(){
+		if(deliveredPassengerTimes.size() == 0) return "";
+
+		String result = "Statistics:\n\n";
+
 		try {
 			File statisticsFile = new File(getLocalName() + ".txt");
 			FileOutputStream fos = new FileOutputStream(statisticsFile, false);
 			statisticsFile.createNewFile();
 
-			for(Map.Entry<AID, Long> entry : requestedPassengerTimes.entrySet()){
+			// Values holders
+			float totalRequestedPickedTime = 0, totalPickedDeliveredTime = 0, totalCostPayed = 0f;
+
+			DecimalFormat decimalFormat = new DecimalFormat("#.##");
+			decimalFormat.setRoundingMode(RoundingMode.CEILING);
+
+			// Iterate through all delivered passengers
+			for(Map.Entry<AID, Long> entry : deliveredPassengerTimes.entrySet()){
 				AID passenger = entry.getKey();
 
-				System.out.println(passenger.getLocalName() + " - RP: " + (pickedPassengerTimes.get(passenger) - requestedPassengerTimes.get(passenger))
-						+ " | PD: " + (deliveredPassengerTimes.get(passenger) - pickedPassengerTimes.get(passenger))
-						+ " | Payed: " + costTravelledPassengers.get(passenger));
+				float requestedPickedTime = (pickedPassengerTimes.get(passenger) - requestedPassengerTimes.get(passenger)) / 1000f;
+				float pickedDeliveredTime = (deliveredPassengerTimes.get(passenger) - pickedPassengerTimes.get(passenger)) / 1000f;
+				float costPayed = costTravelledPassengers.get(passenger);
+
+				totalRequestedPickedTime += requestedPickedTime;
+				totalPickedDeliveredTime += pickedDeliveredTime;
+				totalCostPayed += costPayed;
+
+				result += "Passenger: " + passenger.getLocalName() + "\nTime waiting: "
+						+ decimalFormat.format(requestedPickedTime) + "\tTravelling time: "
+						+ decimalFormat.format(pickedDeliveredTime) + "\tTaxi cost: "
+						+ decimalFormat.format(costPayed) + "\n";
 			}
+
+			result += "\nAverage values:\n";
+
+			float totalTuples = deliveredPassengerTimes.size();
+
+			float avgRequestedPickedTime = totalRequestedPickedTime / totalTuples;
+			float avgPickedDeliveredTime = totalPickedDeliveredTime / totalTuples;
+			float avgCostPayed = totalCostPayed / totalTuples;
+
+			result += "Time waiting: " + decimalFormat.format(avgRequestedPickedTime) +
+					"\nTravelling time: " + decimalFormat.format(avgPickedDeliveredTime) +
+					"\nTaxi cost: " + decimalFormat.format(avgCostPayed);
+
+			fos.write(result.getBytes());
+			fos.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
+		return result;
 	}
 
 	// --------------------------------------------
