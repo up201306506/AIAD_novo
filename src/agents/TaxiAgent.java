@@ -28,7 +28,7 @@ public class TaxiAgent extends Agent {
 	private static final long serialVersionUID = 163911234618964268L;
 
 	// Static configuration value
-	private static float COMPENSATION_VALUE = 0.2f;
+	private static float COMPENSATION_VALUE = 0.3f;
 	private static int VALUE_BY_SECOND = 4;
 
 	// Taxi dynamic variables
@@ -260,16 +260,15 @@ public class TaxiAgent extends Agent {
 								myAgent.send(acceptsOrder);
 							}
 						}else{ // Station has sharing policy
-
-
-
-
 							if(capacity == 0){ // Taxi has no free space to take more passengers
-								// Refuses order
-								ACLMessage refuseOrder = orderMessage.createReply();
-								refuseOrder.setPerformative(ACLMessage.DISCONFIRM);
-								refuseOrder.setContent("refuse-order");
-								myAgent.send(refuseOrder);
+								// Adds passenger to this taxi passengers waiting list
+								queueRequests.add(passenger);
+
+								// Accepts order
+								ACLMessage acceptsOrder = orderMessage.createReply();
+								acceptsOrder.setPerformative(ACLMessage.CONFIRM);
+								acceptsOrder.setContent("accept-order");
+								myAgent.send(acceptsOrder);
 							}else{ // Taxi has free spaces
 								// Saves important checkpoints for notifications
 								travellingPassengers.add(passenger);
@@ -524,6 +523,10 @@ public class TaxiAgent extends Agent {
 	}
 
 	private boolean isAdvantageous(DataSerializable.PassengerData passenger){
+		// If there are no passengers traveling it always is advantageous
+		if(travellingPassengers.size() == 0)
+			return true;
+
 		// Array of all passengers
 		ArrayList<DataSerializable.PassengerData> passengersToComapareTo = new ArrayList<>(travellingPassengers);
 		passengersToComapareTo.add(passenger);
@@ -629,48 +632,85 @@ public class TaxiAgent extends Agent {
 					score = 0;
 					for(int i = 0; i < allPassengers.size(); i++){
 						// Calculates the path to passenger starting cell that is waiting for taxi
-						LinkedList<Cell> pathToPassenger = AStar.AStarAlgorithm(cellMap, lastPosition, allPassengers.get(i).getStartingCell(), true);
-						score += AStar.PathDuration(pathToPassenger);
+						LinkedList<Cell> pathToPassenger = AStar.AStarAlgorithm(cellMap, lastPosition, allPassengers.get(i).getStartingCell(), passengerData.isDiminishingDuration());
+						if(passengerData.isDiminishingDuration())
+							score += AStar.PathDuration(pathToPassenger);
+						else
+							score += AStar.PathDistance(pathToPassenger);
 
 						// Calculates the path to travel the passenger waiting for taxi
 						lastPosition = allPassengers.get(i).getEndingCell();
-						LinkedList<Cell> pathToTravelPassenger = AStar.AStarAlgorithm(cellMap, allPassengers.get(i).getStartingCell(), lastPosition, true);
-						score += AStar.PathDuration(pathToTravelPassenger);
+						LinkedList<Cell> pathToTravelPassenger = AStar.AStarAlgorithm(cellMap, allPassengers.get(i).getStartingCell(), lastPosition, passengerData.isDiminishingDuration());
+						if(passengerData.isDiminishingDuration())
+							score += AStar.PathDuration(pathToTravelPassenger);
+						else
+							score += AStar.PathDistance(pathToTravelPassenger);
 					}
 
 					// Calculates the path to pick up this passenger that it is proposing
-					LinkedList<Cell> pathToPickNextPassenger = AStar.AStarAlgorithm(cellMap, lastPosition, passengerData.getStartingCell(), true);
-					score += AStar.PathDuration(pathToPickNextPassenger);
+					LinkedList<Cell> pathToPickNextPassenger = AStar.AStarAlgorithm(cellMap, lastPosition, passengerData.getStartingCell(), passengerData.isDiminishingDuration());
+					if(passengerData.isDiminishingDuration())
+						score += AStar.PathDuration(pathToPickNextPassenger);
+					else
+						score += AStar.PathDistance(pathToPickNextPassenger);
 
 					state = ACCEPT_PROPOSE;
 					break;
 				}else{ // Station has sharing policy
-					// Calculates the number of spacesOccupied in taxi
-					int spacesOccupied = 0;
-					for(int i = 0; i < travellingPassengers.size(); i++){
-						spacesOccupied += travellingPassengers.get(i).getNumberOfPassengers();
-					}
-
-					// Taxi has no free spaces
-					if(spacesOccupied >= maxCapacity){
-						state = REFUSE_PROPOSE;
-						break;
-					}
-
 					// Verifies if it is advantageous to travel this passenger
 					if(!isAdvantageous(passengerData)){
-						state = REFUSE_PROPOSE;
+						// Notices all passengers traveling and waiting to travel
+						ArrayList<DataSerializable.PassengerData> allPassengers = new ArrayList<>();
+						// Adds traveling passenger to cost calculations
+						for(int i = 0; i < travellingPassengers.size(); i++)
+							allPassengers.add(travellingPassengers.get(0));
+						// Adds all passenger waiting to travel
+						for(int i = 0; i < queueRequests.size(); i++)
+							allPassengers.add(queueRequests.get(i));
+
+						// Holds last position of calculations
+						Cell lastPosition = positionCell;
+						score = 0;
+						for(int i = 0; i < allPassengers.size(); i++){
+							// Calculates the path to passenger starting cell that is waiting for taxi
+							LinkedList<Cell> pathToPassenger = AStar.AStarAlgorithm(cellMap, lastPosition, allPassengers.get(i).getStartingCell(), passengerData.isDiminishingDuration());
+							if(passengerData.isDiminishingDuration())
+								score += AStar.PathDuration(pathToPassenger);
+							else
+								score += AStar.PathDistance(pathToPassenger);
+
+							// Calculates the path to travel the passenger waiting for taxi
+							lastPosition = allPassengers.get(i).getEndingCell();
+							LinkedList<Cell> pathToTravelPassenger = AStar.AStarAlgorithm(cellMap, allPassengers.get(i).getStartingCell(), lastPosition, passengerData.isDiminishingDuration());
+							if(passengerData.isDiminishingDuration())
+								score += AStar.PathDuration(pathToTravelPassenger);
+							else
+								score += AStar.PathDistance(pathToTravelPassenger);
+						}
+
+						// Calculates the path to pick up this passenger that it is proposing
+						LinkedList<Cell> pathToPickNextPassenger = AStar.AStarAlgorithm(cellMap, lastPosition, passengerData.getStartingCell(), passengerData.isDiminishingDuration());
+						if(passengerData.isDiminishingDuration())
+							score += AStar.PathDuration(pathToPickNextPassenger);
+						else
+							score += AStar.PathDistance(pathToPickNextPassenger);
+
+						state = ACCEPT_PROPOSE;
 						break;
 					}
 
+					System.err.println(getLocalName());
+
 					// Calculates the fastest path to the passenger
-					LinkedList<Cell> path = AStar.AStarAlgorithm(cellMap, positionCell, passengerData.getStartingCell(), true);
-					// Calculates the duration of the path
-					score = AStar.PathDuration(path);
+					LinkedList<Cell> path = AStar.AStarAlgorithm(cellMap, positionCell, passengerData.getStartingCell(), passengerData.isDiminishingDuration());
+					if(passengerData.isDiminishingDuration())
+						score = AStar.PathDuration(path);
+					else
+						score = AStar.PathDistance(path);
 
 					state = ACCEPT_PROPOSE;
+					break;
 				}
-				break;
 			case ACCEPT_PROPOSE:
 				ACLMessage acceptProposal = proposeMessage.createReply();
 				acceptProposal.setPerformative(ACLMessage.ACCEPT_PROPOSAL);

@@ -40,7 +40,7 @@ public class Test_Statistics_Sharing_Distance extends Agent {
 			agents.add(taxi1);
 
 			// Taxi2
-			String taxi2ArgsStr = "19,1,4";
+			String taxi2ArgsStr = "10,0,4";
 			Object[] taxi2Args = taxi2ArgsStr.split(",");
 			AgentController taxi2 = cc.createNewAgent("taxi2", "agents.TaxiAgent", taxi2Args);
 			taxi2.start();
@@ -76,16 +76,12 @@ public class Test_Statistics_Sharing_Distance extends Agent {
 			passenger1.start();
 			agents.add(passenger1);
 
-			sleep(0.1);
-
 			// Passenger2
 			String passenger2ArgsStr = "4,8,4,10,1";
 			Object[] passenger2Args = passenger2ArgsStr.split(",");
 			AgentController passenger2 = cc.createNewAgent("passenger2", "agents.PassengerAgent", passenger2Args);
 			passenger2.start();
 			agents.add(passenger2);
-
-			sleep(0.1);
 
 			// Passenger3
 			String passenger3ArgsStr = "4,32,4,28,5";
@@ -94,16 +90,12 @@ public class Test_Statistics_Sharing_Distance extends Agent {
 			passenger3.start();
 			agents.add(passenger3);
 
-			sleep(0.1);
-
 			// Passenger4
-			String passenger4ArgsStr = "34,4,34,11,1";
+			String passenger4ArgsStr = "34,4,31,14,1";
 			Object[] passenger4Args = passenger4ArgsStr.split(",");
 			AgentController passenger4 = cc.createNewAgent("passenger4", "agents.PassengerAgent", passenger4Args);
 			passenger4.start();
 			agents.add(passenger4);
-
-			sleep(0.1);
 
 			// Passenger5
 			String passenger5ArgsStr = "36,5,34,10,1";
@@ -112,16 +104,12 @@ public class Test_Statistics_Sharing_Distance extends Agent {
 			passenger5.start();
 			agents.add(passenger5);
 
-			sleep(0.1);
-
 			// Passenger6
 			String passenger6ArgsStr = "24,19,30,23,1";
 			Object[] passenger6Args = passenger6ArgsStr.split(",");
 			AgentController passenger6 = cc.createNewAgent("passenger6", "agents.PassengerAgent", passenger6Args);
 			passenger6.start();
 			agents.add(passenger6);
-
-			sleep(0.1);
 
 			// Passenger7
 			String passenger7ArgsStr = "26,25,23,23,1";

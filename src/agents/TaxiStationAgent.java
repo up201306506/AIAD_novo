@@ -107,7 +107,7 @@ public class TaxiStationAgent extends Agent{
 			}
 		} else {
 			isSharingPolicy = false;
-			isDiminishingDuration = false;
+			isDiminishingDuration = true;
 		}
 
 		// Initializes GUI
